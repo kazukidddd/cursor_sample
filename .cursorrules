@@ -1,0 +1,135 @@
+// Flutter App Coding Standards .cursorrules
+
+// Flexibility Notice
+// Note: Follow these rules while maintaining consistency with existing project patterns.
+// Adapt guidelines to match the project's established architecture.
+
+// Naming Conventions
+const namingRules = {
+    files: [
+        "Use snake_case for all files",
+        "Append _widget.dart to widget files",
+        "Append _test.dart to test files",
+        "Append _controller.dart to controller files"
+    ],
+    classes: [
+        "Use PascalCase for classes",
+        "Don't appendWidget to widget classes",
+        "Append Controller to controller classes"
+    ],
+    members: [
+        "Use camelCase for variables and methods",
+        "Prefix private members with _",
+        "Prefix boolean methods with is/has/should"
+    ]
+};
+
+// Project Structure
+const projectStructure = `
+lib/
+  ├── core/          # Common utilities and constants
+  ├── features/      # Feature modules
+  ├── l10n/          # Localization
+  └── main.dart
+
+feature/
+  ├── data/          # Data layer
+  ├── domain/        # Domain layer
+  └── presentation/  # Presentation layer
+`;
+
+// Code Style
+const codeStyle = {
+    formatting: [
+        "Use 2 spaces for indentation",
+        "Maximum line length: 80 characters"
+    ],
+    documentation: [
+        "Use /// for documentation comments",
+        "Document complex logic",
+        "Include rationale in TODO comments"
+    ],
+    imports: [
+        "Order: dart:, package:, relative imports",
+        "Group exports in dedicated files"
+    ]
+};
+
+// Widget Development
+const widgetRules = {
+    principles: [
+        "Prefer StatelessWidget",
+        "Follow single responsibility principle",
+        "Break down large widgets"
+    ],
+    performance: [
+        "Use const constructors",
+        "Avoid unnecessary rebuilds",
+        "Use ListView.builder for lists",
+        "Implement Slivers for better scrolling"
+    ]
+};
+
+// State Management
+const stateManagement = {
+    hooks: [
+        "Use Hooks for simple component state",
+        "Keep hook scope limited"
+    ],
+    riverpod: [
+        "Use Riverpod for complex state",
+        "Define proper provider scopes"
+    ]
+};
+
+// Error Handling
+const errorHandling = [
+    "Use try-catch for async operations",
+    "Show user-friendly error messages",
+    "Implement proper error logging"
+];
+
+// Testing
+const testingStandards = {
+    unit: [
+        "Test all business logic",
+        "Use appropriate mocks"
+    ],
+    widget: [
+        "Test critical UI components",
+        "Test user interactions"
+    ],
+    integration: [
+        "Test main user flows",
+        "Test on real devices"
+    ]
+};
+
+// Best Practices
+const bestPractices = {
+    localization: [
+        "Use ARB files for strings",
+        "No hardcoded strings"
+    ],
+    assets: [
+        "Optimize image sizes",
+        "Version control fonts"
+    ],
+    security: [
+        "Use .env for sensitive data",
+        "No hardcoded credentials"
+    ]
+};
+
+// Linting Rules
+const lintRules = {
+    enabled: [
+        "always_use_package_imports",
+        "avoid_empty_else",
+        "avoid_print",
+        "prefer_const_constructors",
+        "prefer_final_locals",
+        "sort_child_properties_last",
+        "use_key_in_widget_constructors"
+    ]
+};
