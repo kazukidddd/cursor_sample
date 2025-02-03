@@ -1,3 +1,55 @@
 {
-  "dart.flutterSdkPath": ".fvm/versions/stable"
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "debug.toolBarLocation": "commandCenter",
+  "[dart]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+  "cSpell.words": [
+    "beople",
+    "cachebase",
+    "childs",
+    "Cupertino",
+    "Daiji",
+    "datetime",
+    "dotenv",
+    "fastify",
+    "Favorited",
+    "Firestore",
+    "fullscreen",
+    "Hhmm",
+    "Hiragino",
+    "horiz",
+    "houseworks",
+    "Kaku",
+    "LTRB",
+    "Noto",
+    "openapi",
+    "Oshikatsu",
+    "reorderable",
+    "Riverpod",
+    "sublist",
+    "timeago",
+    "tokushohou",
+    "unawaited",
+    "unfocus",
+    "unhide"
+  ],
+  "dart.flutterSdkPath": ".fvm/versions/3.27.2",
+  "dart.sdkPath": ".fvm/flutter_sdk",
+  "search.exclude": {
+    "**/.fvm": true
+  },
+  "files.watcherExclude": {
+    "**/.fvm": true
+  },
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "pubspec.yaml": ".flutter-plugins, .packages, .dart_tool, .flutter-plugins-dependencies, .metadata, .packages, pubspec.lock, build.yaml, analysis_options.yaml, all_lint_rules.yaml",
+    "*.dart": "$(capture).g.dart, $(capture).freezed.dart"
+  }
 }
