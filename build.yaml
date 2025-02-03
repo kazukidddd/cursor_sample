@@ -1,0 +1,15 @@
+targets:
+  $default:
+    builders:
+      riverpod_generator:
+        options:
+          provider_name_suffix: "Provider"
+      source_gen|combining_builder:
+        options:
+          ignore_for_file:
+            - type=lint
+            - duplicate_ignore
+            - unnecessary_import
+            - unnecessary_this
+            - unused_import
+            - unused_shown_name 
