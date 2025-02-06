@@ -5,34 +5,19 @@ import 'package:todo_app/core/utils/app_error.dart';
 import 'package:todo_app/core/utils/date_formatter.dart';
 import 'package:todo_app/core/utils/validator.dart';
 import 'package:todo_app/features/todo/application/todo_provider.dart';
-import 'package:todo_app/features/todo/domain/models/todo.dart';
 
-class TodoEditPage extends ConsumerStatefulWidget {
-  const TodoEditPage({
-    super.key,
-    required this.todo,
-  });
-
-  final Todo todo;
+class TodoCreateScreen extends ConsumerStatefulWidget {
+  const TodoCreateScreen({super.key});
 
   @override
-  ConsumerState<TodoEditPage> createState() => _TodoEditPageState();
+  ConsumerState<TodoCreateScreen> createState() => _TodoCreateScreenState();
 }
 
-class _TodoEditPageState extends ConsumerState<TodoEditPage> {
+class _TodoCreateScreenState extends ConsumerState<TodoCreateScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _titleController;
-  late final TextEditingController _descriptionController;
-  late DateTime? _dueDate;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.todo.title);
-    _descriptionController =
-        TextEditingController(text: widget.todo.description);
-    _dueDate = widget.todo.dueDate;
-  }
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  DateTime? _dueDate;
 
   @override
   void dispose() {
@@ -45,14 +30,11 @@ class _TodoEditPageState extends ConsumerState<TodoEditPage> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      final updatedTodo = widget.todo.copyWith(
-        title: _titleController.text,
-        description: _descriptionController.text,
-        dueDate: _dueDate,
-        updatedAt: DateTime.now(),
-      );
-
-      await ref.read(todoControllerProvider.notifier).updateTodo(updatedTodo);
+      await ref.read(todoControllerProvider.notifier).addTodo(
+            _titleController.text,
+            _descriptionController.text,
+            _dueDate,
+          );
 
       if (context.mounted) {
         context.pop();
@@ -66,51 +48,6 @@ class _TodoEditPageState extends ConsumerState<TodoEditPage> {
           ),
         );
       }
-    }
-  }
-
-  Future<void> _delete() async {
-    try {
-      await ref
-          .read(todoControllerProvider.notifier)
-          .deleteTodo(widget.todo.id);
-      if (context.mounted) {
-        context.pop();
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppError.getMessage(e)),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('削除の確認'),
-        content: const Text('このTODOを削除してもよろしいですか？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('キャンセル'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('削除'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _delete();
     }
   }
 
@@ -120,13 +57,7 @@ class _TodoEditPageState extends ConsumerState<TodoEditPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('TODO編集'),
-        actions: [
-          IconButton(
-            onPressed: state.isLoading ? null : _confirmDelete,
-            icon: const Icon(Icons.delete),
-          ),
-        ],
+        title: const Text('新規TODO作成'),
       ),
       body: Form(
         key: _formKey,
@@ -173,7 +104,7 @@ class _TodoEditPageState extends ConsumerState<TodoEditPage> {
               onTap: () async {
                 final date = await showDatePicker(
                   context: context,
-                  initialDate: _dueDate ?? DateTime.now(),
+                  initialDate: DateTime.now(),
                   firstDate: DateTime.now(),
                   lastDate: DateTime.now().add(
                     const Duration(days: 365),
@@ -192,8 +123,8 @@ class _TodoEditPageState extends ConsumerState<TodoEditPage> {
             else
               ElevatedButton.icon(
                 onPressed: _submit,
-                icon: const Icon(Icons.save),
-                label: const Text('更新'),
+                icon: const Icon(Icons.add),
+                label: const Text('作成'),
               ),
           ],
         ),

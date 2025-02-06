@@ -5,14 +5,14 @@ import 'package:todo_app/core/utils/app_error.dart';
 import 'package:todo_app/core/utils/validator.dart';
 import 'package:todo_app/features/auth/application/auth_provider.dart';
 
-class SignInPage extends ConsumerStatefulWidget {
-  const SignInPage({super.key});
+class SignInScreen extends ConsumerStatefulWidget {
+  const SignInScreen({super.key});
 
   @override
-  ConsumerState<SignInPage> createState() => _SignInPageState();
+  ConsumerState<SignInScreen> createState() => _SignInScreenState();
 }
 
-class _SignInPageState extends ConsumerState<SignInPage> {
+class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();

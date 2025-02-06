@@ -5,19 +5,34 @@ import 'package:todo_app/core/utils/app_error.dart';
 import 'package:todo_app/core/utils/date_formatter.dart';
 import 'package:todo_app/core/utils/validator.dart';
 import 'package:todo_app/features/todo/application/todo_provider.dart';
+import 'package:todo_app/features/todo/domain/models/todo.dart';
 
-class TodoCreatePage extends ConsumerStatefulWidget {
-  const TodoCreatePage({super.key});
+class TodoEditScreen extends ConsumerStatefulWidget {
+  const TodoEditScreen({
+    super.key,
+    required this.todo,
+  });
+
+  final Todo todo;
 
   @override
-  ConsumerState<TodoCreatePage> createState() => _TodoCreatePageState();
+  ConsumerState<TodoEditScreen> createState() => _TodoEditScreenState();
 }
 
-class _TodoCreatePageState extends ConsumerState<TodoCreatePage> {
+class _TodoEditScreenState extends ConsumerState<TodoEditScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  DateTime? _dueDate;
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late DateTime? _dueDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.todo.title);
+    _descriptionController =
+        TextEditingController(text: widget.todo.description);
+    _dueDate = widget.todo.dueDate;
+  }
 
   @override
   void dispose() {
@@ -30,11 +45,14 @@ class _TodoCreatePageState extends ConsumerState<TodoCreatePage> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      await ref.read(todoControllerProvider.notifier).addTodo(
-            _titleController.text,
-            _descriptionController.text,
-            _dueDate,
-          );
+      final updatedTodo = widget.todo.copyWith(
+        title: _titleController.text,
+        description: _descriptionController.text,
+        dueDate: _dueDate,
+        updatedAt: DateTime.now(),
+      );
+
+      await ref.read(todoControllerProvider.notifier).updateTodo(updatedTodo);
 
       if (context.mounted) {
         context.pop();
@@ -51,13 +69,64 @@ class _TodoCreatePageState extends ConsumerState<TodoCreatePage> {
     }
   }
 
+  Future<void> _delete() async {
+    try {
+      await ref
+          .read(todoControllerProvider.notifier)
+          .deleteTodo(widget.todo.id);
+      if (context.mounted) {
+        context.pop();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppError.getMessage(e)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('削除の確認'),
+        content: const Text('このTODOを削除してもよろしいですか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _delete();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(todoControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('新規TODO作成'),
+        title: const Text('TODO編集'),
+        actions: [
+          IconButton(
+            onPressed: state.isLoading ? null : _confirmDelete,
+            icon: const Icon(Icons.delete),
+          ),
+        ],
       ),
       body: Form(
         key: _formKey,
@@ -104,7 +173,7 @@ class _TodoCreatePageState extends ConsumerState<TodoCreatePage> {
               onTap: () async {
                 final date = await showDatePicker(
                   context: context,
-                  initialDate: DateTime.now(),
+                  initialDate: _dueDate ?? DateTime.now(),
                   firstDate: DateTime.now(),
                   lastDate: DateTime.now().add(
                     const Duration(days: 365),
@@ -123,8 +192,8 @@ class _TodoCreatePageState extends ConsumerState<TodoCreatePage> {
             else
               ElevatedButton.icon(
                 onPressed: _submit,
-                icon: const Icon(Icons.add),
-                label: const Text('作成'),
+                icon: const Icon(Icons.save),
+                label: const Text('更新'),
               ),
           ],
         ),

@@ -7,8 +7,8 @@ import 'package:todo_app/features/todo/application/todo_provider.dart';
 import 'package:todo_app/features/todo/presentation/widgets/todo_card.dart';
 import 'package:todo_app/features/todo/presentation/widgets/todo_filter_menu.dart';
 
-class TodoListPage extends ConsumerWidget {
-  const TodoListPage({super.key});
+class TodoListScreen extends ConsumerWidget {
+  const TodoListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
