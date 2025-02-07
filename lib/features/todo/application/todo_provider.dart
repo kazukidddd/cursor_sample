@@ -64,7 +64,16 @@ class TodoController extends _$TodoController {
         isCompleted: false,
       );
 
-      await FirebaseFirestore.instance.collection('todos').add(todo.toJson());
+      await FirebaseFirestore.instance.collection('todos').add({
+        'userId': todo.userId,
+        'title': todo.title,
+        'description': todo.description,
+        'createdAt': Timestamp.fromDate(todo.createdAt),
+        'updatedAt': Timestamp.fromDate(todo.updatedAt),
+        'dueDate':
+            todo.dueDate != null ? Timestamp.fromDate(todo.dueDate!) : null,
+        'isCompleted': todo.isCompleted,
+      });
     });
   }
 
@@ -81,10 +90,16 @@ class TodoController extends _$TodoController {
   Future<void> updateTodo(Todo todo) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await FirebaseFirestore.instance
-          .collection('todos')
-          .doc(todo.id)
-          .update(todo.toJson());
+      await FirebaseFirestore.instance.collection('todos').doc(todo.id).update({
+        'userId': todo.userId,
+        'title': todo.title,
+        'description': todo.description,
+        'createdAt': Timestamp.fromDate(todo.createdAt),
+        'updatedAt': Timestamp.fromDate(todo.updatedAt),
+        'dueDate':
+            todo.dueDate != null ? Timestamp.fromDate(todo.dueDate!) : null,
+        'isCompleted': todo.isCompleted,
+      });
     });
   }
 
