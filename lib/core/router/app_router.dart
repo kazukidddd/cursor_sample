@@ -1,8 +1,8 @@
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:todo_app/features/auth/application/auth_provider.dart';
-import 'package:todo_app/features/auth/presentation/sign_in_page.dart';
-import 'package:todo_app/features/settings/presentation/settings_page.dart';
+import 'package:todo_app/features/auth/presentation/sign_in_screen.dart';
+import 'package:todo_app/features/settings/presentation/settings_screen.dart';
 import 'package:todo_app/features/todo/domain/models/todo.dart';
 import 'package:todo_app/features/todo/presentation/todo_create_page.dart';
 import 'package:todo_app/features/todo/presentation/todo_edit_page.dart';
@@ -28,26 +28,26 @@ GoRouter router(RouterRef ref) {
     routes: [
       GoRoute(
         path: '/signin',
-        builder: (context, state) => const SignInPage(),
+        builder: (context, state) => const SignInScreen(),
       ),
       GoRoute(
         path: '/todos',
-        builder: (context, state) => const TodoListPage(),
+        builder: (context, state) => const TodoListScreen(),
       ),
       GoRoute(
         path: '/todos/create',
-        builder: (context, state) => const TodoCreatePage(),
+        builder: (context, state) => const TodoCreateScreen(),
       ),
       GoRoute(
         path: '/todos/edit',
         builder: (context, state) {
           final todo = state.extra as Todo;
-          return TodoEditPage(todo: todo);
+          return TodoEditScreen(todo: todo);
         },
       ),
       GoRoute(
         path: '/settings',
-        builder: (context, state) => const SettingsPage(),
+        builder: (context, state) => const SettingsScreen(),
       ),
     ],
   );
