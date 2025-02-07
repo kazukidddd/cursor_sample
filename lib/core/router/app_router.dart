@@ -4,9 +4,9 @@ import 'package:todo_app/features/auth/application/auth_provider.dart';
 import 'package:todo_app/features/auth/presentation/sign_in_screen.dart';
 import 'package:todo_app/features/settings/presentation/settings_screen.dart';
 import 'package:todo_app/features/todo/domain/models/todo.dart';
-import 'package:todo_app/features/todo/presentation/todo_create_page.dart';
-import 'package:todo_app/features/todo/presentation/todo_edit_page.dart';
-import 'package:todo_app/features/todo/presentation/todo_list_page.dart';
+import 'package:todo_app/features/todo/presentation/todo_create_screen.dart';
+import 'package:todo_app/features/todo/presentation/todo_edit_screen.dart';
+import 'package:todo_app/features/todo/presentation/todo_list_screen.dart';
 
 part 'app_router.g.dart';
 
