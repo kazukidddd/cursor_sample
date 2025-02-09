@@ -1,0 +1,85 @@
+{
+  "Flutter Screen Widget": {
+    "prefix": "fscreen",
+    "body": [
+      "import 'package:flutter/material.dart';",
+      "import 'package:flutter_riverpod/flutter_riverpod.dart';",
+      "",
+      "class ${1:Name}Screen extends ConsumerWidget {",
+      "  const ${1:Name}Screen({super.key});",
+      "",
+      "  static const routeName = '/${2:route-name}';",
+      "",
+      "  @override",
+      "  Widget build(BuildContext context, WidgetRef ref) {",
+      "    return Scaffold(",
+      "      appBar: AppBar(",
+      "        title: const Text('${3:Screen Title}'),",
+      "      ),",
+      "      body: ${4:Container()},",
+      "    );",
+      "  }",
+      "}"
+    ],
+    "description": "Creates a new screen widget with Riverpod consumer"
+  },
+  "Flutter Provider": {
+    "prefix": "fprovider",
+    "body": [
+      "import 'package:flutter_riverpod/flutter_riverpod.dart';",
+      "",
+      "final ${1:name}Provider = StateNotifierProvider<${2:Name}Controller, ${3:State}>((ref) {",
+      "  return ${2:Name}Controller(ref);",
+      "});",
+      "",
+      "class ${2:Name}Controller extends StateNotifier<${3:State}> {",
+      "  ${2:Name}Controller(this.ref) : super(${4:initial});",
+      "",
+      "  final Ref ref;",
+      "",
+      "  ${5:// TODO: Add methods}",
+      "}"
+    ],
+    "description": "Creates a new Riverpod provider with controller"
+  },
+  "Flutter Freezed Model": {
+    "prefix": "fmodel",
+    "body": [
+      "import 'package:freezed_annotation/freezed_annotation.dart';",
+      "",
+      "part '${TM_FILENAME_BASE}.freezed.dart';",
+      "part '${TM_FILENAME_BASE}.g.dart';",
+      "",
+      "@freezed",
+      "class ${1:Name} with _$${1:Name} {",
+      "  const factory ${1:Name}({",
+      "    required String id,",
+      "    ${2:// TODO: Add fields}",
+      "  }) = _${1:Name};",
+      "",
+      "  factory ${1:Name}.fromJson(Map<String, dynamic> json) =>",
+      "      _$${1:Name}FromJson(json);",
+      "}"
+    ],
+    "description": "Creates a new Freezed model class"
+  },
+  "Flutter Repository": {
+    "prefix": "frepo",
+    "body": [
+      "import 'package:flutter_riverpod/flutter_riverpod.dart';",
+      "",
+      "final ${1:name}RepositoryProvider = Provider<${2:Name}Repository>((ref) {",
+      "  return ${2:Name}Repository(ref);",
+      "});",
+      "",
+      "class ${2:Name}Repository {",
+      "  const ${2:Name}Repository(this.ref);",
+      "",
+      "  final Ref ref;",
+      "",
+      "  ${3:// TODO: Add methods}",
+      "}"
+    ],
+    "description": "Creates a new repository with Riverpod provider"
+  }
+}
