@@ -2,8 +2,153 @@
 description: Flutter
 globs: 
 ---
+# Flutter アプリケーション開発ガイドライン
 
-# Your rule content
+## 目次
+1. [コーディング規約](mdc:#コーディング規約)
+2. [アーキテクチャ設計](mdc:#アーキテクチャ設計)
+3. [コア機能](mdc:#コア機能)
+4. [フィーチャー開発](mdc:#フィーチャー開発)
 
-- You can @ files here
-- You can use markdown but dont have to
+## コーディング規約
+
+### 命名規則
+#### ファイル名
+- すべてのファイル名は`snake_case`を使用
+- Widgetファイルには`_widget.dart`を付加
+- テストファイルには`_test.dart`を付加
+- コントローラーファイルには`_controller.dart`を付加
+
+#### クラス名
+- クラス名は`PascalCase`を使用
+- Widgetクラスには'Widget'を付加しない
+- コントローラークラスには'Controller'を付加
+
+#### 変数・メソッド
+- 変数とメソッドは`camelCase`を使用
+- プライベートメンバーには`_`を接頭辞として付加
+- 真偽値を返すメソッドは`is/has/should`で開始
+
+### コードスタイル
+- インデントは2スペース
+- 1行の最大文字数は80文字
+- importの順序: `dart:` > `package:` > 相対パス
+- ドキュメントコメントは`///`を使用
+- 複雑なロジックにはコメントを付加
+- TODOコメントには理由を含める
+
+### リンティングルール
+```yaml
+enabled:
+  - always_use_package_imports
+  - avoid_empty_else
+  - avoid_print
+  - prefer_const_constructors
+  - prefer_final_locals
+  - sort_child_properties_last
+  - use_key_in_widget_constructors
+```
+
+## アーキテクチャ設計
+
+### 設計原則
+- クリーンアーキテクチャの原則に従う
+- 依存性逆転の原則を適用
+- 単一責任の原則を遵守
+- 関心の分離を徹底
+
+### レイヤー構造
+#### プレゼンテーション層
+- UIロジックのみを含む
+- ビジネスロジックは含まない
+- 状態管理はRiverpodを使用
+
+#### ドメイン層
+- ビジネスロジックを定義
+- ユースケースを実装
+- エンティティを定義
+
+#### データ層
+- データソースの抽象化
+- リポジトリの実装
+- モデルの定義
+
+## コア機能
+
+### テーマ管理
+- アプリ全体のテーマを一元管理
+- ダークモードのサポート
+- レスポンシブデザインの実装
+
+### ルーティング
+- Auto Routeを使用
+- ディープリンクのサポート
+- 画面遷移のアニメーション定義
+
+### 多言語対応
+- ARBファイルで文字列を管理
+- ハードコードされた文字列を避ける
+- 多言語サポートの実装
+
+### エラーハンドリング
+- 例外処理の一元管理
+- ユーザーフレンドリーなエラーメッセージ
+- エラーログの実装
+
+### ユーティリティ
+- 共通のユーティリティ関数
+- 定数の管理
+- 共通のウィジェット
+
+## フィーチャー開発
+
+### プロジェクト構造
+```
+lib/
+  ├── core/          # Common utilities and constants
+  │   ├── constants/
+  │   ├── theme/
+  │   ├── utils/
+  │   └── widgets/
+  ├── features/      # Feature modules
+  │   └── feature_name/
+  │       ├── data/          # Data layer
+  │       │   ├── datasources/
+  │       │   ├── models/
+  │       │   └── repositories/
+  │       ├── domain/        # Domain layer
+  │       │   ├── entities/
+  │       │   ├── repositories/
+  │       │   └── usecases/
+  │       └── presentation/  # Presentation layer
+  │           ├── screens/
+  │           └── widgets/
+  ├── l10n/          # Localization
+  └── main.dart
+```
+
+### 開発ガイドライン
+- フィーチャーごとに独立したモジュール化
+- 再利用可能なコンポーネントの作成
+- ビジネスロジックの分離
+
+### テスト戦略
+- ユニットテストの必須化
+- 統合テストの実装
+- UIテストの実装
+
+### パフォーマンス最適化
+- メモリリークの防止
+- パフォーマンス最適化
+- レンダリングの効率化
+
+### 状態管理
+#### ローカル状態
+- StatefulWidgetの最小限の使用
+- Hooksの適切な使用
+- 状態の局所化
+
+#### グローバル状態
+- Riverpodによる状態管理
+- 適切なスコープ設定
+- 状態の永続化対応
