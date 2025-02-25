@@ -9,12 +9,6 @@ globs: lib/**/*.dart
 
 - コーディング規約は[style_guide.mdc](mdc:.cursor/rules/style_guide.mdc)に従います。
 
-## エントリポイント
-
-- [main.dart](mdc:lib/main.dart)がエントリポイントです。
-- 
-
-
 ## アーキテクチャ設計
 
 ### 設計原則
@@ -65,3 +59,36 @@ lib/
 - データソースの抽象化
 - リポジトリの実装
 - モデルの定義
+
+## エントリポイント
+
+- @main.dartがエントリポイントです。
+
+## エンティティ
+
+- `lib/entity/**` にエンティティを定義します。
+- 実装方法は @entity.mdc に従います。
+
+## ロジック
+
+- 業務ロジックに必要なデータの読み書きや計算を実装します。
+- 実装方法は @logic.mdc に従います。
+
+## リポジトリ
+
+- `lib/repository/**` にサーバサイドとの通信を実装します。
+- 実装方法は @repository.mdc に従います。
+
+## UI
+
+- `lib/ui/**` にページおよび、UI の体験を実装します。
+- 実装方法は @foos_page.dart を参考にします。
+
+## Riverpodの使用
+
+- 状態管理はRiverpodパッケージを使用します。
+- 少なくとも以下のパッケージの使用を必須とします。
+- flutter_riverpod
+- riverpod_annotation
+- riverpod_generator
+
