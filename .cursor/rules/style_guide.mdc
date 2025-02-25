@@ -1,0 +1,3891 @@
+---
+description: コーディング規約規約
+globs: 
+---
+
+# Flutter アプリケーション開発ガイドライン
+
+## 目次
+1. [コーディング規約](mdc:#コーディング規約)
+2. [アーキテクチャ設計](mdc:#アーキテクチャ設計)
+3. [コア機能](mdc:#コア機能)
+4. [フィーチャー開発](mdc:#フィーチャー開発)
+5. [状態管理](mdc:#状態管理)
+6. [テスト戦略](mdc:#テスト戦略)
+7. [CI/CD](mdc:#cicd)
+8. [セキュリティ](mdc:#セキュリティ)
+9. [アクセシビリティ](mdc:#アクセシビリティ)
+10. [バージョン管理](mdc:#バージョン管理)
+11. [ドキュメント](mdc:#ドキュメント)
+12. [デザインシステム](mdc:#デザインシステム)
+13. [環境設定](mdc:#環境設定)
+
+## コーディング規約
+
+### 命名規則
+#### ファイル名
+- すべてのファイル名は`snake_case`を使用
+- Widgetファイルには`_widget.dart`を付加
+- テストファイルには`_test.dart`を付加
+- コントローラーファイルには`_controller.dart`を付加
+- 画面ファイルには`_screen.dart`を付加
+
+#### クラス名
+- クラス名は`PascalCase`を使用
+- Widgetクラスには'Widget'を付加しない
+- コントローラークラスには'Controller'を付加
+- 画面クラスには'Screen'を付加
+
+#### 変数・メソッド
+- 変数とメソッドは`camelCase`を使用
+- プライベートメンバーには`_`を接頭辞として付加
+- 真偽値を返すメソッドは`is/has/should`で開始
+- コレクション変数は複数形を使用（例：`users`、`items`）
+
+### コードスタイル
+- インデントは2スペース
+- 1行の最大文字数は80文字
+- importの順序: `dart:` > `package:` > 相対パス
+- ドキュメントコメントは`///`を使用
+- 複雑なロジックにはコメントを付加
+- TODOコメントには理由と担当者を含める（例：`// TODO(username): 理由 - 期限`）
+- クラス、公開メソッドには必ずドキュメントコメントを記載
+
+### Widget開発ガイドライン
+- 100行以上のWidgetは小さなコンポーネントに分割する
+- `const`コンストラクタを積極的に使用する
+- Widgetツリーのネストは最大5階層までに制限する
+- 再利用可能なWidgetは`core/widgets`に配置する
+- 条件付きレンダリングには三項演算子よりも`if`文を使用する
+- 大きなリストには`ListView.builder`または`Sliver`を使用する
+
+### 非同期処理
+- 非同期メソッドには`async`キーワードを使用し、戻り値は`Future<T>`とする
+- ストリーム処理には`Stream`と`StreamBuilder`を使用する
+- すべての非同期処理は`try-catch`でエラーハンドリングする
+- 長時間実行される処理にはローディングインジケータを表示する
+- 非同期処理のキャンセル機能を実装する
+
+### コメント規約
+```dart
+/// クラスの説明
+/// 
+/// 詳細な説明や使用例
+class ExampleClass {
+  /// メソッドの説明
+  /// 
+  /// パラメータの説明:
+  /// [param1] - パラメータ1の説明
+  /// [param2] - パラメータ2の説明
+  /// 
+  /// 戻り値の説明
+  /// 
+  /// 例外:
+  /// [Exception] - 例外が発生する条件
+  ReturnType methodName(Type param1, Type param2) {
+    // 実装の詳細に関するコメント
+    return value;
+  }
+}
+```
+
+### リンティングルール
+```yaml
+enabled:
+  - always_use_package_imports
+  - avoid_empty_else
+  - avoid_print
+  - prefer_const_constructors
+  - prefer_final_locals
+  - sort_child_properties_last
+  - use_key_in_widget_constructors
+  - avoid_unnecessary_containers
+  - prefer_single_quotes
+  - sort_constructors_first
+  - always_declare_return_types
+  - avoid_void_async
+  - unawaited_futures
+```
+
+## アーキテクチャ設計
+
+### 設計原則
+- クリーンアーキテクチャの原則に従う
+- 依存性逆転の原則を適用
+- 単一責任の原則を遵守
+- 関心の分離を徹底
+- テスト容易性を考慮した設計
+
+### レイヤー構造
+#### プレゼンテーション層
+- UIロジックのみを含む
+- ビジネスロジックは含まない
+- 状態管理はRiverpodを使用
+- 画面遷移はAutoRouteを使用
+
+#### ドメイン層
+- ビジネスロジックを定義
+- ユースケースを実装
+- エンティティを定義
+- リポジトリインターフェースを定義
+
+#### データ層
+- データソースの抽象化
+- リポジトリの実装
+- モデルの定義
+- 外部APIとの通信処理
+
+### 依存性注入
+- Riverpodを使用した依存性注入を実装
+- テスト時にはモックに置き換え可能な設計
+- 依存関係は明示的に宣言
+
+```dart
+// 依存性注入の例
+final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+
+final userRepositoryProvider = Provider<UserRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return UserRepositoryImpl(apiClient);
+});
+
+final userUseCaseProvider = Provider<UserUseCase>((ref) {
+  final repository = ref.watch(userRepositoryProvider);
+  return UserUseCaseImpl(repository);
+});
+```
+
+### ユースケース設計
+- 1つのユースケースは1つの機能に対応
+- 複数のリポジトリを跨ぐ処理はユースケース内で統合
+- ユースケースの粒度は「ユーザーストーリー」に合わせる
+- 入力と出力は明確に定義
+
+```dart
+abstract class GetUserUseCase {
+  Future<Either<Failure, User>> execute(String userId);
+}
+
+class GetUserUseCaseImpl implements GetUserUseCase {
+  final UserRepository _userRepository;
+  
+  GetUserUseCaseImpl(this._userRepository);
+  
+  @override
+  Future<Either<Failure, User>> execute(String userId) async {
+    return await _userRepository.getUser(userId);
+  }
+}
+```
+
+## コア機能
+
+### テーマ管理
+- アプリ全体のテーマを一元管理
+- ダークモードのサポート
+- レスポンシブデザインの実装
+- デザイントークンの定義と使用
+
+```dart
+// テーマ定義の例
+final lightTheme = ThemeData(
+  primaryColor: AppColors.primary,
+  textTheme: TextTheme(
+    headline1: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    // 他のテキストスタイル
+  ),
+  // その他のテーマ設定
+);
+
+final darkTheme = ThemeData(
+  // ダークモード用の設定
+);
+```
+
+### ルーティング
+- Auto Routeを使用
+- ディープリンクのサポート
+- 画面遷移のアニメーション定義
+- ルートガードの実装
+
+```dart
+// ルーティング設定の例
+@MaterialAutoRouter(
+  replaceInRouteName: 'Page,Route',
+  routes: <AutoRoute>[
+    AutoRoute(page: SplashScreen, initial: true),
+    AutoRoute(page: LoginScreen),
+    AutoRoute(
+      page: HomeScreen,
+      children: [
+        AutoRoute(page: DashboardScreen, initial: true),
+        AutoRoute(page: ProfileScreen),
+      ],
+    ),
+    // その他のルート
+  ],
+)
+class $AppRouter {}
+```
+
+### 多言語対応
+- ARBファイルで文字列を管理
+- ハードコードされた文字列を避ける
+- 多言語サポートの実装
+- 言語切り替え機能の提供
+
+```dart
+// 多言語対応の例
+// l10n/app_ja.arb
+{
+  "appTitle": "アプリタイトル",
+  "welcomeMessage": "ようこそ、{userName}さん",
+  "@welcomeMessage": {
+    "placeholders": {
+      "userName": {
+        "type": "String"
+      }
+    }
+  }
+}
+
+// 使用例
+Text(AppLocalizations.of(context)!.welcomeMessage(userName));
+```
+
+### エラーハンドリング
+- 例外処理の一元管理
+- ユーザーフレンドリーなエラーメッセージ
+- エラーログの実装
+- リトライメカニズムの提供
+
+```dart
+// エラーハンドリングの例
+Future<void> fetchData() async {
+  try {
+    final result = await apiClient.getData();
+    // 成功時の処理
+  } on NetworkException catch (e) {
+    ErrorLogger.log(e);
+    showErrorDialog(
+      title: AppLocalizations.of(context)!.networkErrorTitle,
+      message: AppLocalizations.of(context)!.networkErrorMessage,
+    );
+  } on ServerException catch (e) {
+    ErrorLogger.log(e);
+    showErrorDialog(
+      title: AppLocalizations.of(context)!.serverErrorTitle,
+      message: AppLocalizations.of(context)!.serverErrorMessage,
+    );
+  } catch (e) {
+    ErrorLogger.log(e);
+    showErrorDialog(
+      title: AppLocalizations.of(context)!.unknownErrorTitle,
+      message: AppLocalizations.of(context)!.unknownErrorMessage,
+    );
+  }
+}
+```
+
+### ユーティリティ
+- 共通のユーティリティ関数
+- 定数の管理
+- 共通のウィジェット
+- 拡張メソッドの活用
+
+```dart
+// 拡張メソッドの例
+extension StringExtension on String {
+  bool get isValidEmail {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(this);
+  }
+  
+  String capitalize() {
+    if (this.isEmpty) return this;
+    return '${this[0].toUpperCase()}${this.substring(1)}';
+  }
+}
+
+// 使用例
+if (email.isValidEmail) {
+  // 有効なメールアドレス
+}
+```
+
+## フィーチャー開発
+
+### プロジェクト構造
+```
+lib/
+  ├── core/          # 共通ユーティリティと定数
+  │   ├── constants/
+  │   ├── theme/
+  │   ├── utils/
+  │   └── widgets/
+  ├── features/      # 機能モジュール
+  │   └── feature_name/
+  │       ├── data/          # データ層
+  │       │   ├── datasources/
+  │       │   ├── models/
+  │       │   └── repositories/
+  │       ├── domain/        # ドメイン層
+  │       │   ├── entities/
+  │       │   ├── repositories/
+  │       │   └── usecases/
+  │       └── presentation/  # プレゼンテーション層
+  │           ├── screens/
+  │           └── widgets/
+  ├── l10n/          # 多言語化
+  └── main.dart
+```
+
+### 開発ガイドライン
+- フィーチャーごとに独立したモジュール化
+- 再利用可能なコンポーネントの作成
+- ビジネスロジックの分離
+- 各フィーチャーは独立してテスト可能に設計
+
+### パフォーマンス最適化
+- メモリリークの防止
+- 不要な再ビルドの回避
+- 画像リソースの最適化
+- レンダリングの効率化
+
+```dart
+// パフォーマンス最適化の例
+// メモリ効率の良いリスト表示
+ListView.builder(
+  itemCount: items.length,
+  itemBuilder: (context, index) {
+    return const MyListItem(); // constを使用
+  },
+);
+
+// 画像の最適化
+Image.network(
+  url,
+  cacheWidth: 300,
+  cacheHeight: 200,
+  loadingBuilder: (context, child, loadingProgress) {
+    if (loadingProgress == null) return child;
+    return Center(child: CircularProgressIndicator());
+  },
+);
+```
+
+## 状態管理
+
+### ローカル状態
+- StatefulWidgetの最小限の使用
+- Hooksの適切な使用
+- 状態の局所化
+- `setState`の適切な使用
+
+```dart
+// Hooksの使用例
+class CounterWidget extends HookWidget {
+  @override
+  Widget build(BuildContext context) {
+    final count = useState(0);
+    
+    return Column(
+      children: [
+        Text('Count: ${count.value}'),
+        ElevatedButton(
+          onPressed: () => count.value++,
+          child: Text('Increment'),
+        ),
+      ],
+    );
+  }
+}
+```
+
+### グローバル状態
+- Riverpodによる状態管理
+- 適切なプロバイダーの選択
+- 状態の永続化対応
+- 状態変更の監視
+
+```dart
+// Riverpodの使用例
+// 状態の定義
+final counterProvider = StateNotifierProvider<CounterNotifier, int>((ref) {
+  return CounterNotifier();
+});
+
+class CounterNotifier extends StateNotifier<int> {
+  CounterNotifier() : super(0);
+  
+  void increment() => state++;
+  void decrement() => state--;
+}
+
+// 状態の使用
+class CounterScreen extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(counterProvider);
+    
+    return Column(
+      children: [
+        Text('Count: $count'),
+        ElevatedButton(
+          onPressed: () => ref.read(counterProvider.notifier).increment(),
+          child: Text('Increment'),
+        ),
+      ],
+    );
+  }
+}
+```
+
+### 状態永続化
+- SharedPreferencesは単純な設定値に使用
+- Hiveは複雑なオブジェクトの永続化に使用
+- SQLiteは関係データの永続化に使用
+- 永続化すべき状態の判断基準：ユーザー設定、認証情報、オフラインデータ
+
+```dart
+// 状態永続化の例
+// Hiveを使用した永続化
+@HiveType(typeId: 0)
+class User extends HiveObject {
+  @HiveField(0)
+  late String id;
+  
+  @HiveField(1)
+  late String name;
+  
+  @HiveField(2)
+  late String email;
+}
+
+// Riverpodと組み合わせた永続化
+final userProvider = StateNotifierProvider<UserNotifier, User?>((ref) {
+  return UserNotifier(ref.read(userRepositoryProvider));
+});
+
+class UserNotifier extends StateNotifier<User?> {
+  final UserRepository _repository;
+  
+  UserNotifier(this._repository) : super(null) {
+    _loadUser();
+  }
+  
+  Future<void> _loadUser() async {
+    state = await _repository.getUser();
+  }
+  
+  Future<void> saveUser(User user) async {
+    await _repository.saveUser(user);
+    state = user;
+  }
+}
+```
+
+## テスト戦略
+
+### テスト種類
+- ユニットテスト：ビジネスロジック、ユースケース、リポジトリ
+- ウィジェットテスト：UI要素、インタラクション
+- 統合テスト：複数のコンポーネントの連携
+- E2Eテスト：ユーザーフローの検証
+
+### テストカバレッジ
+- ビジネスロジックは90%以上のカバレッジを目標
+- UIコンポーネントは70%以上のカバレッジを目標
+- 優先的にテストすべき箇所：
+  - 複雑なビジネスロジック
+  - エラーハンドリング
+  - 条件分岐
+  - ユーザー入力処理
+
+### モックの使用
+- mocktailを使用してモックを作成
+- テスト対象の外部依存をすべてモック化
+- モックの振る舞いを明示的に定義
+
+```dart
+// モックの例
+class MockUserRepository extends Mock implements UserRepository {}
+
+void main() {
+  late UserUseCase useCase;
+  late MockUserRepository mockRepository;
+  
+  setUp(() {
+    mockRepository = MockUserRepository();
+    useCase = UserUseCaseImpl(mockRepository);
+  });
+  
+  test('should return user when repository returns success', () async {
+    // Arrange
+    final user = User(id: '1', name: 'Test User');
+    when(() => mockRepository.getUser('1'))
+        .thenAnswer((_) async => Right(user));
+    
+    // Act
+    final result = await useCase.execute('1');
+    
+    // Assert
+    expect(result, Right(user));
+    verify(() => mockRepository.getUser('1')).called(1);
+  });
+}
+```
+
+## CI/CD
+
+### CI設定
+- GitHub Actionsを使用
+- プルリクエスト時に自動テスト実行
+- 静的解析（lint）の実行
+- テストカバレッジレポートの生成
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.0'
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test --coverage
+      - uses: codecov/codecov-action@v2
+        with:
+          file: ./coverage/lcov.info
+```
+
+### CD設定
+- 自動ビルドとデプロイ
+- 環境ごとのビルド設定
+- バージョン管理の自動化
+- リリースノートの自動生成
+
+```yaml
+# .github/workflows/cd.yml
+name: CD
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.0'
+      - run: flutter pub get
+      - run: flutter build appbundle
+      - uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          packageName: com.example.app
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          track: internal
+```
+
+## セキュリティ
+
+### 機密情報の管理
+- 環境変数を使用して機密情報を管理
+- `.env`ファイルをバージョン管理から除外
+- APIキーなどの機密情報はネイティブコードに埋め込む
+
+```dart
+// 環境変数の使用例
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> main() async {
+  await dotenv.load(fileName: ".env");
+  runApp(MyApp());
+}
+
+// 使用例
+final apiKey = dotenv.env['API_KEY'] ?? '';
+```
+
+### 認証・認可
+- セキュアな認証フローの実装
+- JWTトークンの適切な管理
+- リフレッシュトークンの実装
+- 認証状態の永続化
+
+```dart
+// 認証の例
+class AuthRepository {
+  final SecureStorage _secureStorage;
+  final ApiClient _apiClient;
+  
+  AuthRepository(this._secureStorage, this._apiClient);
+  
+  Future<void> login(String username, String password) async {
+    final response = await _apiClient.login(username, password);
+    await _secureStorage.write(key: 'access_token', value: response.accessToken);
+    await _secureStorage.write(key: 'refresh_token', value: response.refreshToken);
+  }
+  
+  Future<String?> getAccessToken() async {
+    return await _secureStorage.read(key: 'access_token');
+  }
+  
+  Future<void> logout() async {
+    await _secureStorage.delete(key: 'access_token');
+    await _secureStorage.delete(key: 'refresh_token');
+  }
+}
+```
+
+### セキュアなストレージ
+- 機密情報はFlutter Secure Storageを使用
+- 一般データはSharedPreferencesを使用
+- データの暗号化
+
+```dart
+// セキュアなストレージの例
+class SecureStorage {
+  final FlutterSecureStorage _storage = FlutterSecureStorage();
+  
+  Future<void> write({required String key, required String value}) async {
+    await _storage.write(key: key, value: value);
+  }
+  
+  Future<String?> read({required String key}) async {
+    return await _storage.read(key: key);
+  }
+  
+  Future<void> delete({required String key}) async {
+    await _storage.delete(key: key);
+  }
+}
+```
+
+## アクセシビリティ
+
+### スクリーンリーダー対応
+- すべてのインタラクティブ要素に`semanticsLabel`を設定
+- 画像には`semanticLabel`を追加
+- カスタムウィジェットには`Semantics`ウィジェットを使用
+
+```dart
+// アクセシビリティの例
+Image.asset(
+  'assets/logo.png',
+  semanticLabel: 'アプリロゴ',
+);
+
+ElevatedButton(
+  onPressed: () {},
+  child: Text('送信'),
+  semanticsLabel: 'フォームを送信',
+);
+
+Semantics(
+  label: 'カスタムボタン',
+  hint: 'タップして続行',
+  button: true,
+  child: GestureDetector(
+    onTap: () {},
+    child: Container(
+      // ...
+    ),
+  ),
+);
+```
+
+### コントラスト比
+- テキストとバックグラウンドのコントラスト比は4.5:1以上
+- 大きなテキストは3:1以上
+- コントラスト比チェックツールを使用して検証
+
+### フォーカス管理
+- キーボードナビゲーションのサポート
+- フォーカス順序の適切な設定
+- フォーカス状態の視覚的フィードバック
+
+```dart
+// フォーカス管理の例
+FocusTraversalGroup(
+  policy: OrderedTraversalPolicy(),
+  child: Column(
+    children: [
+      FocusTraversalOrder(
+        order: NumericFocusOrder(1),
+        child: TextField(
+          decoration: InputDecoration(labelText: 'ユーザー名'),
+        ),
+      ),
+      FocusTraversalOrder(
+        order: NumericFocusOrder(2),
+        child: TextField(
+          decoration: InputDecoration(labelText: 'パスワード'),
+          obscureText: true,
+        ),
+      ),
+      FocusTraversalOrder(
+        order: NumericFocusOrder(3),
+        child: ElevatedButton(
+          onPressed: () {},
+          child: Text('ログイン'),
+        ),
+      ),
+    ],
+  ),
+);
+```
+
+## バージョン管理
+
+### Gitブランチ戦略
+- メインブランチ：`main`（本番環境）
+- 開発ブランチ：`develop`（開発環境）
+- フィーチャーブランチ：`feature/feature-name`
+- リリースブランチ：`release/vX.Y.Z`
+- ホットフィックスブランチ：`hotfix/issue-description`
+
+### コミットメッセージ規約
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+- type: feat, fix, docs, style, refactor, test, chore
+- scope: 変更の範囲（例：auth, ui, api）
+- subject: 変更内容の簡潔な説明
+- body: 詳細な説明
+- footer: 関連するIssue番号など
+
+例：
+```
+feat(auth): ソーシャルログイン機能の追加
+
+Googleアカウントを使用したログイン機能を実装
+- Googleサインイン用のボタンを追加
+- 認証フローの実装
+- ユーザープロフィール情報の取得
+
+Closes #123
+```
+
+### PRレビュープロセス
+- PRテンプレートの使用
+- コードレビューチェックリスト
+- 自動テストの合格
+- 最低1人のレビュアーの承認
+
+## ドキュメント
+
+### コード内ドキュメント
+- すべての公開APIにドキュメントコメントを追加
+- 複雑なロジックには説明コメントを追加
+- dartdocを使用してAPIドキュメントを生成
+
+### プロジェクトドキュメント
+- README.mdにプロジェクト概要、セットアップ手順を記載
+- CONTRIBUTING.mdに貢献ガイドラインを記載
+- アーキテクチャドキュメントの作成
+- ユースケース図、クラス図の作成
+
+### ユーザーマニュアル
+- アプリの使用方法を説明
+- よくある質問（FAQ）
+- トラブルシューティングガイド
+
+## デザインシステム
+
+### UIコンポーネントライブラリ
+- 基本コンポーネントの定義
+- コンポーネントの再利用性を確保
+- コンポーネントカタログの作成
+
+```dart
+// UIコンポーネントの例
+class AppButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onPressed;
+  final ButtonSize size;
+  final ButtonVariant variant;
+  
+  const AppButton({
+    Key? key,
+    required this.text,
+    required this.onPressed,
+    this.size = ButtonSize.medium,
+    this.variant = ButtonVariant.primary,
+  }) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    // サイズに基づくパディングとフォントサイズ
+    final padding = _getPadding();
+    final fontSize = _getFontSize();
+    
+    // バリアントに基づく色
+    final backgroundColor = _getBackgroundColor(context);
+    final textColor = _getTextColor(context);
+    
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: backgroundColor,
+        padding: padding,
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: fontSize,
+        ),
+      ),
+    );
+  }
+  
+  // 実装の詳細...
+}
+
+enum ButtonSize { small, medium, large }
+enum ButtonVariant { primary, secondary, danger }
+```
+
+### デザイントークン
+- 色、タイポグラフィ、スペーシングなどの定義
+- デザイントークンの一元管理
+- ダークモード対応
+
+```dart
+// デザイントークンの例
+abstract class AppColors {
+  // プライマリーカラー
+  static const primary = Color(0xFF1E88E5);
+  static const primaryLight = Color(0xFF6AB7FF);
+  static const primaryDark = Color(0xFF005CB2);
+  
+  // セカンダリーカラー
+  static const secondary = Color(0xFFFF8F00);
+  static const secondaryLight = Color(0xFFFFC046);
+  static const secondaryDark = Color(0xFFC56000);
+  
+  // テキストカラー
+  static const textPrimary = Color(0xFF212121);
+  static const textSecondary = Color(0xFF757575);
+  static const textDisabled = Color(0xFFBDBDBD);
+  
+  // 背景色
+  static const background = Color(0xFFFAFAFA);
+  static const surface = Color(0xFFFFFFFF);
+  
+  // 状態色
+  static const error
+  ```dart
+// デザイントークンの例（続き）
+  // 状態色
+  static const error = Color(0xFFD32F2F);
+  static const success = Color(0xFF388E3C);
+  static const warning = Color(0xFFF57C00);
+  static const info = Color(0xFF1976D2);
+}
+
+abstract class AppTypography {
+  static const headline1 = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.15,
+  );
+  
+  static const headline2 = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.15,
+  );
+  
+  static const subtitle1 = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.15,
+  );
+  
+  static const body1 = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.normal,
+    letterSpacing: 0.25,
+  );
+  
+  static const button = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 1.25,
+  );
+  
+  static const caption = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.normal,
+    letterSpacing: 0.4,
+  );
+}
+
+abstract class AppSpacing {
+  static const double xs = 4.0;
+  static const double s = 8.0;
+  static const double m = 16.0;
+  static const double l = 24.0;
+  static const double xl = 32.0;
+  static const double xxl = 48.0;
+}
+
+abstract class AppRadius {
+  static const double xs = 2.0;
+  static const double s = 4.0;
+  static const double m = 8.0;
+  static const double l = 16.0;
+  static const double xl = 24.0;
+  static const double round = 999.0;
+}
+```
+
+### デザインとコードの一貫性
+- デザインシステムとコードの同期
+- Figmaなどのデザインツールとの連携
+- デザイン変更の自動反映
+
+```dart
+// テーマの定義例
+ThemeData lightTheme = ThemeData(
+  primaryColor: AppColors.primary,
+  colorScheme: ColorScheme(
+    primary: AppColors.primary,
+    primaryContainer: AppColors.primaryDark,
+    secondary: AppColors.secondary,
+    secondaryContainer: AppColors.secondaryDark,
+    surface: AppColors.surface,
+    background: AppColors.background,
+    error: AppColors.error,
+    onPrimary: Colors.white,
+    onSecondary: Colors.white,
+    onSurface: AppColors.textPrimary,
+    onBackground: AppColors.textPrimary,
+    onError: Colors.white,
+    brightness: Brightness.light,
+  ),
+  textTheme: TextTheme(
+    headline1: AppTypography.headline1,
+    headline2: AppTypography.headline2,
+    subtitle1: AppTypography.subtitle1,
+    bodyText1: AppTypography.body1,
+    button: AppTypography.button,
+    caption: AppTypography.caption,
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.m,
+        vertical: AppSpacing.s,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.m),
+      ),
+    ),
+  ),
+  inputDecorationTheme: InputDecorationTheme(
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppRadius.m),
+    ),
+    contentPadding: EdgeInsets.all(AppSpacing.m),
+  ),
+);
+```
+
+## 環境設定
+
+### 環境分離
+- 開発環境（Development）
+- テスト環境（Staging）
+- 本番環境（Production）
+
+```dart
+// 環境設定の例
+enum Environment {
+  development,
+  staging,
+  production,
+}
+
+class EnvironmentConfig {
+  static late Environment _environment;
+  static late String _apiBaseUrl;
+  static late bool _enableLogging;
+  
+  static void initialize(Environment env) {
+    _environment = env;
+    
+    switch (env) {
+      case Environment.development:
+        _apiBaseUrl = 'https://dev-api.example.com';
+        _enableLogging = true;
+        break;
+      case Environment.staging:
+        _apiBaseUrl = 'https://staging-api.example.com';
+        _enableLogging = true;
+        break;
+      case Environment.production:
+        _apiBaseUrl = 'https://api.example.com';
+        _enableLogging = false;
+        break;
+    }
+  }
+  
+  static Environment get environment => _environment;
+  static String get apiBaseUrl => _apiBaseUrl;
+  static bool get enableLogging => _enableLogging;
+  static bool get isProduction => _environment == Environment.production;
+}
+```
+
+### 環境変数管理
+- `.env`ファイルを使用
+- 環境ごとに異なる`.env`ファイル
+- 機密情報は環境変数で管理
+
+```
+# .env.development
+API_URL=https://dev-api.example.com
+ENABLE_LOGGING=true
+
+# .env.production
+API_URL=https://api.example.com
+ENABLE_LOGGING=false
+```
+
+### フレーバーとビルドバリアント
+- 開発、ステージング、本番用のフレーバー
+- フレーバーごとに異なるアプリアイコン、アプリ名
+- フレーバーごとに異なる設定
+
+```yaml
+# pubspec.yaml
+flutter:
+  assets:
+    - .env.development
+    - .env.staging
+    - .env.production
+    - assets/images/
+```
+
+```dart
+// main.dart
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // 環境に応じた.envファイルを読み込む
+  const flavor = String.fromEnvironment('FLAVOR', defaultValue: 'development');
+  await dotenv.load(fileName: '.env.$flavor');
+  
+  // 環境設定の初期化
+  final environment = _getEnvironmentFromFlavor(flavor);
+  EnvironmentConfig.initialize(environment);
+  
+  // ロギングの設定
+  if (EnvironmentConfig.enableLogging) {
+    Fimber.plantTree(DebugTree());
+  }
+  
+  runApp(MyApp());
+}
+
+Environment _getEnvironmentFromFlavor(String flavor) {
+  switch (flavor) {
+    case 'development':
+      return Environment.development;
+    case 'staging':
+      return Environment.staging;
+    case 'production':
+      return Environment.production;
+    default:
+      return Environment.development;
+  }
+}
+```
+
+### ビルドスクリプト
+- 環境ごとのビルドコマンド
+- CIでの自動ビルド設定
+- バージョン管理の自動化
+
+```bash
+# ビルドスクリプトの例
+#!/bin/bash
+
+# 引数からフレーバーを取得
+FLAVOR=$1
+VERSION=$2
+
+# フレーバーの検証
+if [[ "$FLAVOR" != "development" && "$FLAVOR" != "staging" && "$FLAVOR" != "production" ]]; then
+  echo "Invalid flavor. Use development, staging, or production."
+  exit 1
+fi
+
+# バージョンの検証
+if [[ -z "$VERSION" ]]; then
+  echo "Version is required."
+  exit 1
+fi
+
+# ビルド実行
+flutter build apk --flavor $FLAVOR --dart-define=FLAVOR=$FLAVOR --build-number=$(date +%s)
+
+# 出力ファイル名の設定
+OUTPUT_FILE="app-$FLAVOR-$VERSION.apk"
+
+# ビルド成果物の移動
+cp build/app/outputs/flutter-apk/app-$FLAVOR-release.apk $OUTPUT_FILE
+
+echo "Build completed: $OUTPUT_FILE"
+```
+
+## パフォーマンス最適化
+
+### メモリ管理
+- メモリリークの防止
+- 大きなオブジェクトの適切な破棄
+- キャッシュの適切な管理
+
+```dart
+// メモリ管理の例
+class ImageCache {
+  static final Map<String, Uint8List> _cache = {};
+  static const int _maxCacheSize = 10 * 1024 * 1024; // 10MB
+  static int _currentCacheSize = 0;
+  
+  static Future<Uint8List?> getImage(String url) async {
+    // キャッシュにあればそれを返す
+    if (_cache.containsKey(url)) {
+      return _cache[url];
+    }
+    
+    try {
+      // 画像をダウンロード
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final imageData = response.bodyBytes;
+        
+        // キャッシュサイズの管理
+        _manageCache(imageData.length);
+        
+        // キャッシュに追加
+        _cache[url] = imageData;
+        _currentCacheSize += imageData.length;
+        
+        return imageData;
+      }
+    } catch (e) {
+      print('Error loading image: $e');
+    }
+    
+    return null;
+  }
+  
+  static void _manageCache(int newImageSize) {
+    // キャッシュサイズが上限を超える場合、古いものから削除
+    while (_currentCacheSize + newImageSize > _maxCacheSize && _cache.isNotEmpty) {
+      final oldestKey = _cache.keys.first;
+      final removedSize = _cache[oldestKey]!.length;
+      _cache.remove(oldestKey);
+      _currentCacheSize -= removedSize;
+    }
+  }
+  
+  static void clearCache() {
+    _cache.clear();
+    _currentCacheSize = 0;
+  }
+}
+```
+
+### 画像最適化
+- 適切な解像度の画像を使用
+- WebPフォーマットの使用
+- 画像のプリロードとキャッシュ
+
+```dart
+// 画像最適化の例
+// pubspec.yaml
+dependencies:
+  cached_network_image: ^3.2.0
+
+// 使用例
+CachedNetworkImage(
+  imageUrl: imageUrl,
+  placeholder: (context, url) => ShimmerLoading(
+    width: 100,
+    height: 100,
+  ),
+  errorWidget: (context, url, error) => Icon(Icons.error),
+  width: 100,
+  height: 100,
+  fit: BoxFit.cover,
+  memCacheWidth: 200, // メモリキャッシュのサイズ指定
+  memCacheHeight: 200,
+);
+```
+
+### レンダリング最適化
+- `const`ウィジェットの使用
+- `RepaintBoundary`の適切な使用
+- 不要な再ビルドの回避
+
+```dart
+// レンダリング最適化の例
+class OptimizedList extends StatelessWidget {
+  final List<String> items;
+  
+  const OptimizedList({Key? key, required this.items}) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        // 変更が少ない部分はRepaintBoundaryで囲む
+        return RepaintBoundary(
+          child: ListItem(
+            text: items[index],
+            // 子ウィジェットをconstにして再ビルドを防ぐ
+            trailing: const Icon(Icons.arrow_forward),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ListItem extends StatelessWidget {
+  final String text;
+  final Widget trailing;
+  
+  // constコンストラクタを使用
+  const ListItem({
+    Key? key,
+    required this.text,
+    required this.trailing,
+  }) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          Expanded(child: Text(text)),
+          trailing,
+        ],
+      ),
+    );
+  }
+}
+```
+
+### 非同期処理の最適化
+- 適切なキャンセル処理
+- デバウンスとスロットリングの実装
+- バックグラウンド処理の活用
+
+```dart
+// 非同期処理の最適化例
+class SearchController extends StateNotifier<List<SearchResult>> {
+  final SearchRepository _repository;
+  Timer? _debounceTimer;
+  CancelToken? _cancelToken;
+  
+  SearchController(this._repository) : super([]);
+  
+  void search(String query) {
+    // 前回のリクエストをキャンセル
+    _cancelToken?.cancel('新しい検索リクエストが開始されました');
+    _cancelToken = CancelToken();
+    
+    // デバウンス処理（300ms以内の連続した呼び出しをまとめる）
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(Duration(milliseconds: 300), () async {
+      if (query.isEmpty) {
+        state = [];
+        return;
+      }
+      
+      try {
+        final results = await _repository.search(
+          query,
+          cancelToken: _cancelToken,
+        );
+        state = results;
+      } catch (e) {
+        if (e is! CanceledException) {
+          // キャンセル以外のエラー処理
+          print('検索エラー: $e');
+        }
+      }
+    });
+  }
+  
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _cancelToken?.cancel();
+    super.dispose();
+  }
+}
+```
+
+## ロギングとモニタリング
+
+### ロギング戦略
+- 適切なログレベルの使用（debug, info, warning, error）
+- 構造化ログの実装
+- 機密情報のマスキング
+
+```dart
+// ロギングの例
+enum LogLevel {
+  debug,
+  info,
+  warning,
+  error,
+}
+
+class Logger {
+  static LogLevel _minLevel = LogLevel.debug;
+  static final List<LogObserver> _observers = [];
+  
+  static void setMinLevel(LogLevel level) {
+    _minLevel = level;
+  }
+  
+  static void addObserver(LogObserver observer) {
+    _observers.add(observer);
+  }
+  
+  static void debug(String message, [Map<String, dynamic>? data]) {
+    _log(LogLevel.debug, message, data);
+  }
+  
+  static void info(String message, [Map<String, dynamic>? data]) {
+    _log(LogLevel.info, message, data);
+  }
+  
+  static void warning(String message, [Map<String, dynamic>? data]) {
+    _log(LogLevel.warning, message, data);
+  }
+  
+  static void error(String message, [dynamic error, StackTrace? stackTrace, Map<String, dynamic>? data]) {
+    final logData = data ?? {};
+    if (error != null) {
+      logData['error'] = error.toString();
+    }
+    if (stackTrace != null) {
+      logData['stackTrace'] = stackTrace.toString();
+    }
+    _log(LogLevel.error, message, logData);
+  }
+  
+  static void _log(LogLevel level, String message, [Map<String, dynamic>? data]) {
+    if (level.index < _minLevel.index) return;
+    
+    final logEntry = LogEntry(
+      level: level,
+      message: message,
+      timestamp: DateTime.now(),
+      data: data,
+    );
+    
+    // 開発環境ではコンソールに出力
+    if (!EnvironmentConfig.isProduction) {
+      print('${logEntry.formattedTimestamp} [${logEntry.levelString}] $message');
+      if (data != null && data.isNotEmpty) {
+        print('  Data: ${_maskSensitiveData(data)}');
+      }
+    }
+    
+    // オブザーバーに通知
+    for (final observer in _observers) {
+      observer.onLog(logEntry);
+    }
+  }
+  
+  static Map<String, dynamic> _maskSensitiveData(Map<String, dynamic> data) {
+    final result = Map<String, dynamic>.from(data);
+    const sensitiveKeys = ['password', 'token', 'secret', 'apiKey'];
+    
+    for (final key in result.keys) {
+      if (sensitiveKeys.any((k) => key.toLowerCase().contains(k.toLowerCase()))) {
+        result[key] = '********';
+      }
+    }
+    
+    return result;
+  }
+}
+
+class LogEntry {
+  final LogLevel level;
+  final String message;
+  final DateTime timestamp;
+  final Map<String, dynamic>? data;
+  
+  LogEntry({
+    required this.level,
+    required this.message,
+    required this.timestamp,
+    this.data,
+  });
+  
+  String get levelString => level.toString().split('.').last.toUpperCase();
+  String get formattedTimestamp => timestamp.toIso8601String();
+}
+
+abstract class LogObserver {
+  void onLog(LogEntry entry);
+}
+
+// Firebase Crashlyticsへのログ送信
+class CrashlyticsLogObserver implements LogObserver {
+  @override
+  void onLog(LogEntry entry) {
+    if (entry.level == LogLevel.error) {
+      FirebaseCrashlytics.instance.recordError(
+        entry.message,
+        StackTrace.current,
+        reason: entry.message,
+        information: entry.data?.values.map((e) => e.toString()).toList() ?? [],
+      );
+    }
+  }
+}
+```
+
+### クラッシュレポート
+- Firebase Crashlyticsの統合
+- 非致命的エラーの報告
+- カスタムキーの追加
+
+```dart
+// クラッシュレポートの例
+Future<void> initializeCrashlytics() async {
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+    EnvironmentConfig.isProduction,
+  );
+  
+  // 未処理のエラーをキャッチ
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FirebaseCrashlytics.instance.recordFlutterError(details);
+  };
+  
+  // ユーザー情報の設定
+  final user = await UserRepository().getCurrentUser();
+  if (user != null) {
+    FirebaseCrashlytics.instance.setUserIdentifier(user.id);
+    FirebaseCrashlytics.instance.setCustomKey('user_email', user.email);
+    FirebaseCrashlytics.instance.setCustomKey('user_role', user.role);
+  }
+}
+```
+
+### パフォーマンスモニタリング
+- Firebase Performanceの統合
+- カスタムトレースの実装
+- ネットワークリクエストの監視
+
+```dart
+// パフォーマンスモニタリングの例
+Future<void> fetchData() async {
+  // トレースの開始
+  final trace = FirebasePerformance.instance.newTrace('fetch_data');
+  await trace.start();
+  
+  try {
+    // カスタムメトリクスの追加
+    trace.putAttribute('data_type', 'user_profile');
+    
+    // 処理の実行
+    final result = await apiClient.fetchUserProfile();
+    
+    // 成功時のメトリクス
+    trace.putMetric('data_size', result.length.toDouble());
+    
+    return result;
+  } finally {
+    // トレースの終了
+    await trace.stop();
+  }
+}
+
+// ネットワークリクエストの監視
+class PerformanceHttpClient extends http.BaseClient {
+  final http.Client _inner = http.Client();
+  
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    // HTTPメトリクスの作成
+    final metric = FirebasePerformance.instance.newHttpMetric(
+      request.url.toString(),
+      request.method == 'GET' ? HttpMethod.Get : HttpMethod.Post,
+    );
+    
+    await metric.start();
+    
+    try {
+      final response = await _inner.send(request);
+      
+      // レスポンスコードとサイズの記録
+      metric.httpResponseCode = response.statusCode;
+      metric.responseContentLength = response.contentLength;
+      
+      return response;
+    } finally {
+      await metric.stop();
+    }
+  }
+}
+```
+
+## アプリケーションのセキュリティ
+
+### データ保護
+- 機密データの暗号化
+- セキュアなストレージの使用
+- メモリ内の機密データの最小化
+
+```dart
+// データ暗号化の例
+class EncryptionService {
+  static const _algorithm = 'AES-GCM';
+  static const _keySize = 32; // 256ビット
+  static const _ivSize = 16; // 128ビット
+  
+  // 暗号化キーの生成
+  static Future<Uint8List> generateKey() async {
+    final key = Uint8List(_keySize);
+    final secureRandom = Random.secure();
+    for (var i = 0; i < _keySize; i++) {
+      key[i] = secureRandom.nextInt(256);
+    }
+    return key;
+  }
+  
+  // 初期化ベクトルの生成
+  static Uint8List generateIV() {
+    final iv = Uint8List(_ivSize);
+    final secureRandom = Random.secure();
+    for (var i = 0; i < _ivSize; i++) {
+      iv[i] = secureRandom.nextInt(256);
+    }
+    return iv;
+  }
+  
+  // データの暗号化
+  static Future<EncryptedData> encrypt(String plainText, Uint8List key) async {
+    final iv = generateIV();
+    final plainBytes = utf8.encode(plainText);
+    
+    final cipher = GCMBlockCipher(AESEngine())
+      ..init(
+        true,
+        AEADParameters(
+          KeyParameter(key),
+          128, // タグサイズ（ビット）
+          iv,
+          Uint8List(0), // 追加認証データ
+        ),
+      );
+    
+    final cipherText = Uint8List(cipher.getOutputSize(plainBytes.length));
+    var offset = cipher.processBytes(
+      Uint8List.fromList(plainBytes),
+      0,
+      plainBytes.length,
+      cipherText,
+      0,
+    );
+    
+    cipher.doFinal(cipherText, offset);
+    
+    return EncryptedData(
+      cipherText: cipherText,
+      iv: iv,
+    );
+  }
+  
+  // データの復号化
+  static Future<String> decrypt(EncryptedData encryptedData, Uint8List key) async {
+    final cipher = GCMBlockCipher(AESEngine())
+      ..init(
+        false,
+        AEADParameters(
+          KeyParameter(key),
+          128, // タグサイズ（ビット）
+          encryptedData.iv,
+          Uint8List(0), // 追加認証データ
+        ),
+      );
+    
+    final plainText = Uint8List(
+      cipher.getOutputSize(encryptedData.cipherText.length),
+    );
+    
+    var offset = cipher.processBytes(
+      encryptedData.cipherText,
+      0,
+      encryptedData.cipherText.length,
+      plainText,
+      0,
+    );
+    
+    cipher.doFinal(plainText, offset);
+    
+    return utf8.decode(plainText);
+  }
+}
+
+class EncryptedData {
+  final Uint8List cipherText;
+  final Uint8List iv;
+  
+  EncryptedData({
+    required this.cipherText,
+    required this.iv,
+  });
+  
+  // Base64エンコード
+  String toBase64() {
+    final combined = Uint8List(iv.length + cipherText.length);
+    combined.setRange(0, iv.length, iv);
+    combined.setRange(iv.length, combined.length, cipherText);
+    return base64.encode(combined);
+  }
+  
+  // Base64デコード
+  static EncryptedData fromBase64(String base64String) {
+    final combined = base64.decode(base64String);
+    final iv = combined.sublist(0, _ivSize);
+    final cipherText = combined.sublist(_ivSize);
+    return EncryptedData(cipherText: cipherText, iv: iv);
+  }
+}
+```
+
+### 安全な通信
+- HTTPSの強制
+- 証明書ピンニング
+- APIキーの保護
+
+```dart
+// 証明書ピンニングの例
+class SecureHttpClient extends http.BaseClient {
+  final http.Client _inner = http.Client();
+  final List<String> _pinnedCertificates;
+  
+  SecureHttpClient(this._pinnedCertificates);
+  
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    // HTTPSのみを許可
+    if (request.url.scheme != 'https') {
+      throw Exception('HTTPSのみ許可されています');
+    }
+    
+    // カスタムHTTPクライアントを作成
+    final httpClient = HttpClient()
+      ..badCertificateCallback = (cert, host, port) {
+        // 証明書のフィンガープリントを取得
+        final fingerprint = _getFingerprint(cert);
+        
+        // ピン留めされた証明書と比較
+        return _pinnedCertificates.contains(fingerprint);
+      };
+    
+    // リクエストの実行
+    final ioRequest = await _createIORequest(request, httpClient);
+    final ioResponse = await ioRequest.close();
+    
+    // レスポンスの変換
+    return _convertResponse(ioResponse, request);
+  }
+  
+  // 証明書のフィンガープリントを取得
+  String _getFingerprint(X509Certificate cert) {
+    // SHA-256ハッシュを計算
+    final digest = sha256.convert(cert.der);
+    return digest.toString();
+  }
+  
+  // IORequestの作成
+  Future<HttpClientRequest> _createIORequest(
+    http.BaseRequest request,
+    HttpClient httpClient,
+  ) async {
+    // 実装の詳細...
+  }
+  
+  // IOResponseの変換
+  Future<http.StreamedResponse> _convertResponse(
+    HttpClientResponse ioResponse,
+    http.BaseRequest request,
+  ) async {
+    // 実装の詳細...
+  }
+}
+```
+
+### 入力検証
+- すべてのユーザー入力の検証
+- SQLインジェクション対策
+- XSS対策
+
+```dart
+// 入力検証の例
+class InputValidator {
+  static bool isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return emailRegex.hasMatch(email);
+  }
+  
+  static bool isValidPassword(String password) {
+    // 最低8文字、大文字、小文字、数字を含む
+    final passwordRegex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$');
+    return passwordRegex.hasMatch(password);
+  }
+  
+  static bool isValidPhoneNumber(String phoneNumber) {
+    final phoneRegex = RegExp(r'^\+?[0-9]{10,15}$');
+    return phoneRegex.hasMatch(phoneNumber);
+  }
+  
+  static String sanitizeHtml(String html) {
+    // HTMLタグを除去
+    return html.replaceAll(RegExp(r'<[^>]*>'), '');
+  }
+  
+  static String sanitizeForSql(String input) {
+    // SQLインジェクション対策
+    return input.replaceAll("'", "''");
+  }
+}
+```
+
+## アクセシビリティ対応
+
+### スクリーンリーダー対応
+- すべてのインタラクティブ要素に`semanticsLabel`を設定
+- 画像には`semanticLabel`を追加
+- カスタムウィジェットには`Semantics`ウィジェットを使用
+
+```dart
+// アクセシビリティの例
+class AccessibleImage extends StatelessWidget {
+  final String imageUrl;
+  final String semanticLabel;
+  final double width;
+  final double height;
+  
+  const AccessibleImage({
+    Key? key,
+    required this.imageUrl,
+    required this.semanticLabel,
+    this.width,
+    this.height,
+  }) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: semanticLabel,
+      image: true,
+      child: Image.network(
+        imageUrl,
+        width: width,
+        height: height,
+        errorBuilder: (context, error, stackTrace) {
+          return Semantics(
+            label: 'Image failed to load: $semanticLabel',
+            child: Container(
+              width: width,
+              height: height,
+              color: Colors.grey[300],
+              child: Icon(Icons.error),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class AccessibleButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final Widget child;
+  final String semanticLabel;
+  final String? hint;
+  
+  const AccessibleButton({
+    Key? key,
+    required this.onPressed,
+    required this.child,
+    required this.semanticLabel,
+    this.hint,
+  }) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: semanticLabel,
+      hint: hint,
+      button: true,
+      enabled: true,
+      onTap: onPressed,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        child: child,
+      ),
+    );
+  }
+}
+```
+
+### コントラスト比
+- テキストとバックグラウンドのコントラスト比は4.5:1以上
+- 大きなテキストは3:1以上
+- コントラスト比チェックツールを使用して検証
+
+```dart
+// コントラスト比チェックの例
+class ContrastChecker {
+  // 色のコントラスト比を計算
+  static double calculateContrastRatio(Color foreground, Color background) {
+    // 相対輝度を計算
+    final luminance1 = _calculateRelativeLuminance(foreground);
+    final luminance2 = _calculateRelativeLuminance(background);
+    
+    // 明るい色と暗い色を決定
+    final lighter = math.max(luminance1, luminance2);
+    final darker = math.min(luminance1, luminance2);
+    
+    // コントラスト比を計算 (WCAG 2.0)
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+  
+  // 相対輝度の計算
+  static double _calculateRelativeLuminance(Color color) {
+    // RGBの正規化
+    double r = color.red / 255;
+    double g = color.green / 255;
+    double b = color.blue / 255;
+    
+    // sRGB値をリニアRGBに変換
+    r = r <= 0.03928 ? r / 12.92 : math.pow((r + 0.055) / 1.055, 2.4).toDouble();
+    g = g <= 0.03928 ? g / 12.92 : math.pow((g + 0.055) / 1.055, 2.4).toDouble();
+    b = b <= 0.03928 ? b / 12.92 : math.pow((b + 0.055) / 1.055, 2.4).toDouble();
+    
+    // 相対輝度の計算
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  
+  // コントラスト比が十分かチェック
+  static bool isContrastSufficient(
+    Color foreground,
+    Color background,
+    {bool isLargeText = false}
+  ) {
+    final ratio = calculateContrastRatio(foreground, background);
+    return isLargeText ? ratio >= 3.0 : ratio >= 4.5;
+  }
+  
+  // コントラスト比に基づいて警告を表示
+  static String getContrastWarning(
+    Color foreground,
+    Color background,
+    {bool isLargeText = false}
+  ) {
+    final ratio = calculateContrastRatio(foreground, background);
+    final requiredRatio = isLargeText ? 3.0 : 4.5;
+    
+    if (ratio < requiredRatio) {
+      return 'コントラスト比が不十分です: ${ratio.toStringAsFixed(2)}:1 (必要: ${requiredRatio.toString()}:1)';
+    }
+    
+    return '';
+  }
+}
+
+// 使用例
+class AccessibleText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+  final Color backgroundColor;
+  
+  const AccessibleText({
+    Key? key,
+    required this.text,
+    required this.style,
+    required this.backgroundColor,
+  }) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    final textColor = style.color ?? Theme.of(context).textTheme.bodyText1!.color!;
+    final fontSize = style.fontSize ?? Theme.of(context).textTheme.bodyText1!.fontSize!;
+    final isLargeText = fontSize >= 18.0 || (fontSize >= 14.0 && style.fontWeight == FontWeight.bold);
+    
+    // 開発時のみコントラストチェック
+    assert(() {
+      final warning = ContrastChecker.getContrastWarning(
+        textColor,
+        backgroundColor,
+        isLargeText: isLargeText,
+      );
+      
+      if (warning.isNotEmpty) {
+        print('アクセシビリティ警告: $warning');
+      }
+      
+      return true;
+    }());
+    
+    return Text(
+      text,
+      style: style,
+    );
+  }
+}
+```
+
+### フォーカス管理
+- キーボードナビゲーションのサポート
+- フォーカス順序の適切な設定
+- フォーカス状態の視覚的フィードバック
+
+```dart
+// フォーカス管理の例
+class AccessibleForm extends StatefulWidget {
+  const AccessibleForm({Key? key}) : super(key: key);
+  
+  @override
+  _AccessibleFormState createState() => _AccessibleFormState();
+}
+
+class _AccessibleFormState extends State<AccessibleForm> {
+  // フォーカスノードの定義
+  late FocusNode _nameFocus;
+  late FocusNode _emailFocus;
+  late FocusNode _passwordFocus;
+  late FocusNode _submitFocus;
+  
+  @override
+  void initState() {
+    super.initState();
+    
+    // フォーカスノードの初期化
+    _nameFocus = FocusNode();
+    _emailFocus = FocusNode();
+    _passwordFocus = FocusNode();
+    _submitFocus = FocusNode();
+    
+    // フォーカス変更のリスナー
+    _nameFocus.addListener(() {
+      if (_nameFocus.hasFocus) {
+        // アナウンス
+        SemanticsService.announce('名前フィールド', TextDirection.ltr);
+      }
+    });
+  }
+  
+  @override
+  void dispose() {
+    // フォーカスノードの破棄
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _submitFocus.dispose();
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return FocusTraversalGroup(
+      policy: OrderedTraversalPolicy(),
+      child: Column(
+        children: [
+          FocusTraversalOrder(
+            order: NumericFocusOrder(1),
+            child: TextField(
+              focusNode: _nameFocus,
+              decoration: InputDecoration(
+                labelText: '名前',
+                // フォーカス状態の視覚的フィードバック
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                ),
+              ),
+              // Enterキーでフォーカス移動
+              onSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_emailFocus);
+              },
+            ),
+          ),
+          SizedBox(height: 16),
+          FocusTraversalOrder(
+            order: NumericFocusOrder(2),
+            child: TextField(
+              focusNode: _emailFocus,
+              decoration: InputDecoration(
+                labelText: 'メールアドレス',
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                ),
+              ),
+              onSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_passwordFocus);
+              },
+            ),
+          ),
+          SizedBox(height: 16),
+          FocusTraversalOrder(
+            order: NumericFocusOrder(3),
+            child: TextField(
+              focusNode: _passwordFocus,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'パスワード',
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                ),
+              ),
+              onSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_submitFocus);
+              },
+            ),
+          ),
+          SizedBox(height: 24),
+          FocusTraversalOrder(
+            order: NumericFocusOrder(4),
+            child: ElevatedButton(
+              focusNode: _submitFocus,
+              onPressed: () {
+                // フォーム送信処理
+              },
+              // フォーカス状態のスタイル
+              style: ButtonStyle(
+                overlayColor: MaterialStateProperty.resolveWith<Color>((states) {
+                  if (states.contains(MaterialState.focused)) {
+                    return Theme.of(context).primaryColor.withOpacity(0.2);
+                  }
+                  return Colors.transparent;
+                }),
+              ),
+              child: Text('送信'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+## 国際化と地域化
+
+### 多言語サポート
+- intlパッケージを使用
+- ARBファイルで文字列を管理
+- 言語切り替え機能の実装
+
+```dart
+// l10n/app_ja.arb
+{
+  "appTitle": "マイアプリ",
+  "welcomeMessage": "ようこそ、{userName}さん",
+  "@welcomeMessage": {
+    "placeholders": {
+      "userName": {
+        "type": "String"
+      }
+    }
+  },
+  "itemCount": "{count, plural, =0{アイテムがありません} =1{1つのアイテム} other{{count}個のアイテム}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}
+
+// l10n/app_en.arb
+{
+  "appTitle": "My App",
+  "welcomeMessage": "Welcome, {userName}",
+  "@welcomeMessage": {
+    "placeholders": {
+      "userName": {
+        "type": "String"
+      }
+    }
+  },
+  "itemCount": "{count, plural, =0{No items} =1{One item} other{{count} items}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}
+```
+
+```dart
+// 多言語サポートの実装
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      // 多言語サポートの設定
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [
+        Locale('en', ''), // 英語
+        Locale('ja', ''), // 日本語
+        // その他のサポートする言語
+      ],
+      // 言語の解決
+      localeResolutionCallback: (locale, supportedLocales) {
+        // デバイスの言語がサポートされていない場合のフォールバック
+        if (locale == null) {
+          return supportedLocales.first;
+        }
+        
+        // サポートされている言語を探す
+        for (var supportedLocale in supportedLocales) {
+          if (supportedLocale.languageCode == locale.languageCode) {
+            return supportedLocale;
+          }
+        }
+        
+        // デフォルト言語
+        return supportedLocales.first;
+      },
+      // アプリの設定
+      home: HomeScreen(),
+    );
+  }
+}
+
+// 使用例
+class HomeScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.appTitle),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(l10n.welcomeMessage('ユーザー')),
+            Text(l10n.itemCount(5)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+### 言語切り替え
+- ユーザーが言語を選択できる機能
+- 選択した言語の永続化
+- アプリ再起動なしでの言語切り替え
+
+```dart
+// 言語設定の管理
+class LocaleProvider extends ChangeNotifier {
+  Locale _locale;
+  
+  LocaleProvider(this._locale);
+  
+  Locale get locale => _locale;
+  
+  // 言語の変更
+  Future<void> setLocale(Locale locale) async {
+    if (_locale == locale) return;
+    
+    _locale = locale;
+    
+    // 設定を保存
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('languageCode', locale.languageCode);
+    
+    // リスナーに通知
+    notifyListeners();
+  }
+  
+  // 保存された言語設定の読み込み
+  static Future<Locale> loadSavedLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final languageCode = prefs.getString('languageCode');
+    
+    if (languageCode != null) {
+      return Locale(languageCode);
+    }
+    
+    // デフォルト言語
+    return Locale('ja');
+  }
+}
+
+// アプリでの使用
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, child) {
+        return MaterialApp(
+          // 現在の言語を使用
+          locale: localeProvider.locale,
+          // 多言語サポートの設定
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: [
+            Locale('en', ''), // 英語
+            Locale('ja', ''), // 日本語
+          ],
+          home: HomeScreen(),
+        );
+      },
+    );
+  }
+}
+
+// 言語選択画面
+class LanguageSelectionScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.languageSettings),
+      ),
+      body: ListView(
+        children: [
+          ListTile(
+            title: Text('日本語'),
+            trailing: localeProvider.locale.languageCode == 'ja'
+                ? Icon(Icons.check)
+                : null,
+            onTap: () {
+              localeProvider.setLocale(Locale('ja'));
+            },
+          ),
+          ListTile(
+            title: Text('English'),
+            trailing: localeProvider.locale.languageCode == 'en'
+                ? Icon(Icons.check)
+                : null,
+            onTap: () {
+              localeProvider.setLocale(Locale('en'));
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+### 日付と時刻のフォーマット
+- 地域に合わせた日付と時刻の表示
+- intlパッケージを使用したフォーマット
+- タイムゾーンの考慮
+
+```dart
+// 日付と時刻のフォーマット
+class DateTimeFormatter {
+  // 短い日付フォーマット (例: 2023/01/15)
+  static String formatShortDate(DateTime dateTime, Locale locale) {
+    final format = DateFormat.yMd(locale.languageCode);
+    return format.format(dateTime);
+  }
+  
+  // 長い日付フォーマット (例: 2023年1月15日)
+  static String formatLongDate(DateTime dateTime, Locale locale) {
+    final format = DateFormat.yMMMMd(locale.languageCode);
+    return format.format(dateTime);
+  }
+  
+  // 時刻フォーマット (例: 14:30)
+  static String formatTime(DateTime dateTime, Locale locale) {
+    final format = DateFormat.Hm(locale.languageCode);
+    return format.format(dateTime);
+  }
+  
+  // 日付と時刻のフォーマット (例: 2023/01/15 14:30)
+  static String formatDateTime(DateTime dateTime, Locale locale) {
+    final format = DateFormat.yMd(locale.languageCode).add_Hm();
+    return format.format(dateTime);
+  }
+  
+  // 相対時間 (例: 3分前、1時間前)
+  static String formatRelativeTime(DateTime dateTime, Locale locale) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    
+    if (difference.inSeconds < 60) {
+      return AppLocalizations.of(navigatorKey.currentContext!)!.justNow;
+    } else if (difference.inMinutes < 60) {
+      return AppLocalizations.of(navigatorKey.currentContext!)!.minutesAgo(difference.inMinutes);
+    } else if (difference.inHours < 24) {
+      return AppLocalizations.of(navigatorKey.currentContext!)!.hoursAgo(difference.inHours);
+    } else if (difference.inDays < 30) {
+      return AppLocalizations.of(navigatorKey.currentContext!)!.daysAgo(difference.inDays);
+    } else {
+      return formatShortDate(dateTime, locale);
+    }
+  }
+}
+
+// 使用例
+class DateTimeDisplay extends StatelessWidget {
+  final DateTime dateTime;
+  
+  const DateTimeDisplay({Key? key, required this.dateTime}) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('短い日付: ${DateTimeFormatter.formatShortDate(dateTime, locale)}'),
+        Text('長い日付: ${DateTimeFormatter.formatLongDate(dateTime, locale)}'),
+        Text('時刻: ${DateTimeFormatter.formatTime(dateTime, locale)}'),
+        Text('日時: ${DateTimeFormatter.formatDateTime(dateTime, locale)}'),
+        Text('相対時間: ${DateTimeFormatter.formatRelativeTime(dateTime, locale)}'),
+      ],
+    );
+  }
+}
+```
+
+## 依存関係管理
+
+### パッケージバージョン管理
+- バージョン制約の適切な指定
+- 定期的な依存関係の更新
+- 互換性の確認
+
+```yaml
+# pubspec.yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # 状態管理
+  flutter_riverpod: ^2.3.0
+  hooks_riverpod: ^2.3.0
+  flutter_hooks: ^0.18.0
+  
+  # ネットワーク
+  dio: ^5.0.0
+  connectivity_plus: ^3.0.0
+  
+  # ローカルストレージ
+  shared_preferences: ^2.0.0
+  flutter_secure_storage: ^8.0.0
+  hive: ^2.2.0
+  hive_flutter: ^1.1.0
+  
+  # UI
+  flutter_svg: ^2.0.0
+  cached_network_image: ^3.2.0
+  shimmer: ^2.0.0
+  
+  # ユーティリティ
+  intl: ^0.18.0
+  logger: ^1.3.0
+  uuid: ^3.0.0
+  
+  # 多言語対応
+  flutter_localizations:
+    sdk: flutter
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  # 開発ツール
+  flutter_lints: ^2.0.0
+  build_runner: ^2.3.0
+  hive_generator: ^2.0.0
+  mockito: ^5.4.0
+  flutter_launcher_icons: ^0.13.0
+```
+
+### 依存性注入
+- Riverpodを使用した依存性注入
+- テスト時のモック置き換え
+- スコープ管理
+
+```dart
+// 依存性注入の例
+// APIクライアント
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final config = ref.watch(configProvider);
+  return ApiClient(baseUrl: config.apiBaseUrl);
+});
+
+// リポジトリ
+final userRepositoryProvider = Provider<UserRepository>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  final localDatabase = ref.watch(localDatabaseProvider);
+  return UserRepositoryImpl(apiClient, localDatabase);
+});
+
+// ユースケース
+final getUserUseCaseProvider = Provider<GetUserUseCase>((ref) {
+  final repository = ref.watch(userRepositoryProvider);
+  return GetUserUseCaseImpl(repository);
+});
+
+// 状態管理
+final userControllerProvider = StateNotifierProvider<UserController, UserState>((ref) {
+  final getUserUseCase = ref.watch(getUserUseCaseProvider);
+  final updateUserUseCase = ref.watch(updateUserUseCaseProvider);
+  return UserController(getUserUseCase, updateUserUseCase);
+});
+
+// テスト用のオーバーライド
+class TestOverrides extends ProviderScope {
+  TestOverrides({
+    required Widget child,
+    List<Override> overrides = const [],
+  }) : super(
+    child: child,
+    overrides: [
+      // APIクライアントをモックに置き換え
+      apiClientProvider.overrideWithValue(MockApiClient()),
+      // その他のオーバーライド
+      ...overrides,
+    ],
+  );
+}
+```
+
+### モジュール化
+- 機能ごとのモジュール分割
+- 適切な依存関係の方向性
+- 再利用可能なコンポーネント
+
+```dart
+// モジュール化の例
+// auth_module.dart
+class AuthModule {
+  static List<ProviderOrFamily> get providers => [
+    // 認証関連のプロバイダー
+    authRepositoryProvider,
+    loginUseCaseProvider,
+    registerUseCaseProvider,
+    authControllerProvider,
+  ];
+}
+
+// user_module.dart
+class UserModule {
+  static List<ProviderOrFamily> get providers => [
+    // ユーザー関連のプロバイダー
+    userRepositoryProvider,
+    getUserUseCaseProvider,
+    updateUserUseCaseProvider,
+    userControllerProvider,
+  ];
+}
+
+// app_module.dart
+class AppModule {
+  static List<Override> get overrides => [
+    // 共通のプロバイダー
+    ...AuthModule.providers,
+    ...UserModule.providers,
+    // その他のモジュール
+  ];
+}
+
+// main.dart
+void main() {
+  runApp(
+    ProviderScope(
+      overrides: AppModule.overrides,
+      child: MyApp(),
+    ),
+  );
+}
+```
+
+## 継続的インテグレーション/継続的デリバリー
+
+### CI設定
+- GitHub Actionsを使用
+- プルリクエスト時に自動テスト実行
+- 静的解析（lint）の実行
+- テストカバレッジレポートの生成
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.0'
+          channel: 'stable'
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Analyze code
+        run: flutter analyze
+  
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.0'
+          channel: 'stable'
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Run tests
+        run: flutter test --coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          fail_ci_if_error: true
+```
+
+### CD設定
+- 自動ビルドとデプロイ
+- 環境ごとのビルド設定
+- バージョン管理の自動化
+- リリースノートの自動生成
+
+```yaml
+# .github/workflows/cd.yml
+name: CD
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.0'
+          channel: 'stable'
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build APK
+        run: flutter build apk --flavor production --dart-define=FLAVOR=production
+      - name: Build App Bundle
+        run: flutter build appbundle --flavor production --dart-define=FLAVOR=production
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-production-release.apk
+          path: build/app/outputs/flutter-apk/app-production-release.apk
+      - name: Upload App Bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-production-release.aab
+          path: build/app/outputs/bundle/productionRelease/app-production-release.aab
+  
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.0'
+          channel: 'stable'
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build iOS
+        run: flutter build ios --flavor production --dart-define=FLAVOR=production --no-codesign
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-build
+          path: build/ios/iphoneos
+  
+  deploy-android:
+    needs: build-android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download App Bundle
+        uses: actions/download-artifact@v3
+        with:
+          name: app-production-release.aab
+          path: app-production-release.aab
+      - name: Deploy to Play Store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          packageName: com.example.app
+          releaseFiles: app-production-release.aab/app-production-release.aab
+          track: production
+          status: completed
+          releaseNotes: |
+            ${{ github.event.release.body }}
+```
+
+### リリース自動化
+- バージョン番号の自動インクリメント
+- リリースノートの自動生成
+- タグの自動作成
+
+```yaml
+# .github/workflows/release.yml
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version type (major, minor, patch)'
+        required: true
+        default: 'patch'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+      
+      - name: Get current version
+        id: current_version
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //')
+          echo "::set-output name=version::$VERSION"
+      
+      - name: Bump version
+        id: bump_version
+        run: |
+          CURRENT_VERSION=${{ steps.current_version.outputs.version }}
+          VERSION_TYPE=${{ github.event.inputs.version_type }}
+          
+          # バージョン番号を分解
+          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3 | cut -d+ -f1)
+          
+          # バージョンタイプに応じてインクリメント
+          if [ "$VERSION_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$VERSION_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+          
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          
+          # pubspec.yamlのバージョンを更新
+          sed -i "s/version: $CURRENT_VERSION/version: $NEW_VERSION/" pubspec.yaml
+          
+          echo "::set-output name=new_version::$NEW_VERSION"
+      
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 || echo "")
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            # 初回リリースの場合
+            CHANGELOG=$(git log --pretty=format:"- %s (%an)" --no-merges)
+          else
+            # 前回のタグからの変更を取得
+            CHANGELOG=$(git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s (%an)" --no-merges)
+          fi
+          
+          # 改行をエスケープ
+          CHANGELOG="${CHANGELOG//'%'/'%25'}"
+          CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+          CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+          
+          echo "::set-output name=changelog::$CHANGELOG"
+      
+      - name: Commit version bump
+        run: |
+          git add pubspec.yaml
+          git commit -m "Bump version to ${{ steps.bump_version.outputs.new_version }}"
+          git push
+      
+      - name: Create tag
+        run: |
+          git tag v${{ steps.bump_version.outputs.new_version }}
+          git push --tags
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}
+          release_name: Release v${{ steps.bump_version.outputs.new_version }}
+          body: |
+            ## 変更内容
+            
+            ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+```
+
+## プロジェクト管理
+
+### イシュートラッキング
+- GitHub Issuesの活用
+- イシューテンプレートの作成
+- ラベルとマイルストーンの活用
+
+```markdown
+<!-- .github/ISSUE_TEMPLATE/feature_request.md -->
+---
+name: 機能リクエスト
+about: 新機能や改善の提案
+title: '[FEATURE] '
+labels: enhancement
+assignees: ''
+---
+
+## 概要
+<!-- 機能の概要を簡潔に説明してください -->
+
+## 目的
+<!-- この機能が必要な理由や解決する問題を説明してください -->
+
+## 提案する実装方法
+<!-- 実装方法のアイデアがあれば記載してください -->
+
+## 代替案
+<!-- 他の解決方法があれば記載してください -->
+
+## その他の情報
+<!-- 関連する情報や参考資料があれば記載してください -->
+```
+
+```markdown
+<!-- .github/ISSUE_TEMPLATE/bug_report.md -->
+---
+name: バグ報告
+about: アプリの問題を報告
+title: '[BUG] '
+labels: bug
+assignees: ''
+---
+
+## バグの説明
+<!-- バグの内容を明確かつ簡潔に説明してください -->
+
+## 再現手順
+1. '...'に移動
+2. '....'をクリック
+3. '....'までスクロール
+4. エラーが発生
+
+## 期待される動作
+<!-- 本来どのような動作が期待されるか説明してください -->
+
+## スクリーンショット
+<!-- 可能であれば、問題を説明するスクリーンショットを追加してください -->
+
+## 環境情報
+ - デバイス: [例: iPhone 13 Pro]
+ - OS: [例: iOS 15.4]
+ - アプリバージョン: [例: 1.2.0]
+
+## その他の情報
+<!-- 問題に関連するその他の情報があれば記載してください -->
+```
+
+### プルリクエスト
+- PRテンプレートの作成
+- レビュープロセスの定義
+- 自動テストの統合
+
+```markdown
+<!-- .github/PULL_REQUEST_TEMPLATE.md -->
+## 変更内容
+<!-- 変更内容を簡潔に説明してください -->
+
+## 関連するイシュー
+<!-- 関連するイシュー番号を記載してください -->
+Closes #
+
+## 変更の種類
+- [ ] バグ修正
+- [ ] 新機能
+- [ ] 破壊的変更
+- [ ] パフォーマンス改善
+- [ ] リファクタリング
+- [ ] テスト追加
+- [ ] ドキュメント更新
+- [ ] その他
+
+## チェックリスト
+- [ ] テストを追加または更新しました
+- [ ] ドキュメントを更新しました
+- [ ] コードスタイルガイドラインに従っています
+- [ ] 自己レビューを行いました
+- [ ] すべてのテストが成功しています
+
+## スクリーンショット（UI変更の場合）
+<!-- UI変更がある場合はスクリーンショットを追加してください -->
+
+## その他の情報
+<!-- レビュアーに伝えたい追加情報があれば記載してください -->
+```
+
+### ドキュメント
+- READMEの充実
+- 貢献ガイドラインの作成
+- コードオーナーの設定
+
+```markdown
+<!-- README.md -->
+# プロジェクト名
+
+## 概要
+プロジェクトの概要と目的を簡潔に説明します。
+
+## 機能
+- 主要機能1
+- 主要機能2
+- 主要機能3
+
+## スクリーンショット
+![スクリーンショット1](mdc:screenshots/screenshot1.png)
+![スクリーンショット2](mdc:screenshots/screenshot2.png)
+
+## 技術スタック
+- Flutter 3.10.0
+- Dart 3.0.0
+- Riverpod (状態管理)
+- Dio (ネットワーク)
+- Hive (ローカルストレージ)
+
+## アーキテクチャ
+このプロジェクトはクリーンアーキテクチャに基づいて設計されています。
+詳細は[アーキテクチャドキュメント](mdc:docs/architecture.md)を参照してください。
+
+## セットアップ
+1. リポジトリをクローン
+   ```
+   git clone https://github.com/username/project.git
+   ```
+2. 依存関係のインストール
+   ```
+   flutter pub get
+   ```
+3. 環境設定
+   ```
+   cp .env.example .env
+   ```
+   `.env`ファイルを編集して必要な環境変数を設定してください。
+
+4. アプリの実行
+   ```
+   flutter run --flavor development
+   ```
+
+## 開発ガイドライン
+- [コーディング規約](mdc:docs/coding_standards.md)
+- [Git ワークフロー](mdc:docs/git_workflow.md)
+- [テストガイドライン](mdc:docs/testing.md)
+
+## 貢献方法
+貢献に興味がある方は[貢献ガイドライン](mdc:CONTRIBUTING.md)を参照してください。
+
+## ライセンス
+このプロジェクトは[MITライセンス](mdc:LICENSE)の下で公開されています。
+```
+
+```markdown
+<!-- CONTRIBUTING.md -->
+# 貢献ガイドライン
+
+## イシューの報告
+バグを発見した場合や新機能のリクエストがある場合は、GitHubのイシュートラッカーを使用してください。イシューを作成する前に、同様のイシューがすでに存在しないか確認してください。
+
+## 開発プロセス
+1. 作業するイシューを選択し、アサインしてください
+2. `develop`ブランチから新しいブランチを作成してください
+   ```
+   git checkout -b feature/issue-number-description
+   ```
+3. 変更を実装し、テストを追加してください
+4. コミットメッセージの規約に従ってコミットしてください
+5. プルリクエストを作成してください
+
+## コミットメッセージの規約
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+- type: feat, fix, docs, style, refactor, test, chore
+- scope: 変更の範囲（例：auth, ui, api）
+- subject: 変更内容の簡潔な説明
+- body: 詳細な説明
+- footer: 関連するイシュー番号など
+
+例：
+```
+feat(auth): ソーシャルログイン機能の追加
+
+Googleアカウントを使用したログイン機能を実装
+- Googleサインイン用のボタンを追加
+- 認証フローの実装
+- ユーザープロフィール情報の取得
+
+Closes #123
+```
+
+## コードレビュー
+すべてのプルリクエストは少なくとも1人のレビュアーによる承認が必要です。レビュー時には以下の点を確認します：
+
+- コーディング規約に準拠しているか
+- テストが追加されているか
+- ドキュメントが更新されているか
+- 変更が目的を達成しているか
+
+## テスト
+すべての変更にはテストを追加してください。テストカバレッジは80%以上を維持することを目標としています。
+
+## ドキュメント
+コードの変更に伴い、必要に応じてドキュメントを更新してください。
+```
+
+## 最終チェックリスト
+
+### プロジェクト設定
+- [ ] `.gitignore`の設定
+- [ ] 依存関係の最新化
+- [ ] 環境変数の設定
+- [ ] ビルド設定の確認
+
+### コード品質
+- [ ] リンターの設定
+- [ ] フォーマッターの設定
+- [ ] 静的解析の実行
+- [ ] テストカバレッジの確認
+
+### セキュリティ
+- [ ] 機密情報の管理
+- [ ] 依存関係の脆弱性チェック
+- [ ] アクセス制御の確認
+- [ ] データ暗号化の実装
+
+### パフォーマンス
+- [ ] メモリリークのチェック
+- [ ] レンダリングパフォーマンスの確認
+- [ ] 起動時間の最適化
+- [ ] バッテリー消費の最適化
+
+### アクセシビリティ
+- [ ] スクリーンリーダー対応
+- [ ] コントラスト比の確認
+- [ ] キーボードナビゲーションの確認
+- [ ] フォントサイズの調整機能
+
+### 国際化
+- [ ] 多言語サポートの確認
+- [ ] 翻訳の完全性
+- [ ] 右から左への言語サポート
+- [ ] 日付と時刻のフォーマット
+
+### ドキュメント
+- [ ] READMEの更新
+- [ ] APIドキュメントの生成
+- [ ] アーキテクチャドキュメントの更新
+- [ ] ユーザーマニュアルの作成
+
+## デバッグとトラブルシューティング
+
+### デバッグツール
+- Flutter DevToolsの活用
+- ログの適切な使用
+- パフォーマンスプロファイリング
+
+```dart
+// デバッグツールの例
+import 'package:flutter/foundation.dart';
+
+class DebugUtils {
+  // デバッグモードでのみ実行
+  static void printDebug(String message) {
+    if (kDebugMode) {
+      print('DEBUG: $message');
+    }
+  }
+  
+  // パフォーマンス計測
+  static Future<T> measurePerformance<T>(
+    String operationName,
+    Future<T> Function() operation,
+  ) async {
+    if (!kDebugMode) return await operation();
+    
+    final stopwatch = Stopwatch()..start();
+    try {
+      final result = await operation();
+      stopwatch.stop();
+      print('$operationName took ${stopwatch.elapsedMilliseconds}ms');
+      return result;
+    } catch (e) {
+      stopwatch.stop();
+      print('$operationName failed after ${stopwatch.elapsedMilliseconds}ms');
+      rethrow;
+    }
+  }
+  
+  // メモリ使用量のログ
+  static void logMemoryUsage(String tag) {
+    if (!kDebugMode) return;
+    
+    final memoryInfo = MemoryAllocations.instance.dispatchObjectCreated(
+      library: 'app',
+      className: 'MemoryCheck',
+      object: Object(),
+    );
+    
+    print('MEMORY [$tag]: ${memoryInfo.toString()}');
+  }
+  
+  // ウィジェットツリーの出力
+  static void printWidgetTree(BuildContext context) {
+    if (!kDebugMode) return;
+    
+    void visitor(Element element) {
+      print(element.widget.runtimeType);
+      element.visitChildren(visitor);
+    }
+    
+    context.visitChildElements(visitor);
+  }
+}
+```
+
+### エラーハンドリング
+- グローバルエラーハンドラー
+- エラー報告メカニズム
+- ユーザーフレンドリーなエラーメッセージ
+
+```dart
+// グローバルエラーハンドラーの例
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
+class GlobalErrorHandler {
+  static void initialize() {
+    // Flutterフレームワークのエラーをキャッチ
+    FlutterError.onError = (FlutterErrorDetails details) {
+      // エラーをログに記録
+      Logger.error(
+        'Flutter framework error',
+        error: details.exception,
+        stackTrace: details.stack,
+      );
+      
+      // 開発モードではエラーを再スロー
+      if (kDebugMode) {
+        FlutterError.dumpErrorToConsole(details);
+      } else {
+        // 本番環境ではクラッシュレポートに送信
+        FirebaseCrashlytics.instance.recordFlutterError(details);
+      }
+    };
+    
+    // Dartのエラーをキャッチ
+    PlatformDispatcher.instance.onError = (error, stack) {
+      // エラーをログに記録
+      Logger.error(
+        'Uncaught platform error',
+        error: error,
+        stackTrace: stack,
+      );
+      
+      // 開発モードではエラーを再スロー
+      if (kDebugMode) {
+        print('ERROR: $error');
+        print('STACK: $stack');
+        return false; // フレームワークにエラーを処理させる
+      } else {
+        // 本番環境ではクラッシュレポートに送信
+        FirebaseCrashlytics.instance.recordError(error, stack);
+        return true; // エラーを処理済みとしてマーク
+      }
+    };
+  }
+  
+  // ユーザーフレンドリーなエラーメッセージを表示
+  static void showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.errorTitle),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(AppLocalizations.of(context)!.okButton),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // エラータイプに基づいてユーザーフレンドリーなメッセージを取得
+  static String getUserFriendlyMessage(Exception error, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    if (error is NetworkException) {
+      return l10n.networkErrorMessage;
+    } else if (error is AuthenticationException) {
+      return l10n.authErrorMessage;
+    } else if (error is ValidationException) {
+      return error.message;
+    } else {
+      return l10n.generalErrorMessage;
+    }
+  }
+}
+
+// アプリケーション全体でのエラーハンドリング
+class ErrorBoundary extends StatefulWidget {
+  final Widget child;
+  
+  const ErrorBoundary({Key? key, required this.child}) : super(key: key);
+  
+  @override
+  _ErrorBoundaryState createState() => _ErrorBoundaryState();
+}
+
+class _ErrorBoundaryState extends State<ErrorBoundary> {
+  bool _hasError = false;
+  
+  @override
+  void initState() {
+    super.initState();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    if (_hasError) {
+      return Material(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: Colors.red),
+                SizedBox(height: 16),
+                Text(
+                  AppLocalizations.of(context)!.appCrashMessage,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18),
+                ),
+                SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _hasError = false;
+                    });
+                  },
+                  child: Text(AppLocalizations.of(context)!.tryAgainButton),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    
+    return ErrorWidget.builder = (FlutterErrorDetails details) {
+      // エラーをログに記録
+      Logger.error(
+        'Widget error boundary triggered',
+        error: details.exception,
+        stackTrace: details.stack,
+      );
+      
+      // エラー状態を設定
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _hasError = true;
+        });
+      });
+      
+      // 開発モードではエラーウィジェットを表示
+      if (kDebugMode) {
+        return ErrorWidget(details.exception);
+      }
+      
+      // 本番環境ではフォールバックウィジェットを表示
+      return Container(
+        alignment: Alignment.center,
+        child: Text(
+          'Something went wrong.',
+          style: TextStyle(color: Colors.red),
+        ),
+      );
+    };
+    
+    return widget.child;
+  }
+}
+```
+
+### トラブルシューティングガイド
+- 一般的な問題と解決策
+- デバッグチェックリスト
+- パフォーマンス最適化のヒント
+
+```markdown
+# トラブルシューティングガイド
+
+## ビルドエラー
+
+### 問題: Gradle同期エラー
+**症状**: Android Studioでプロジェクトを開いたときに「Gradle sync failed」エラーが表示される
+
+**解決策**:
+1. `flutter clean`を実行
+2. `flutter pub get`を実行
+3. Android StudioでFile > Invalidate Caches / Restartを選択
+4. プロジェクトを再度開く
+
+### 問題: iOS依存関係エラー
+**症状**: iOSビルド時に「CocoaPods not installed」または「Pod install failed」エラーが表示される
+
+**解決策**:
+1. CocoaPodsがインストールされていることを確認: `gem install cocoapods`
+2. iOSフォルダに移動: `cd ios`
+3. Podfileをリセット: `rm Podfile.lock`
+4. Podsをインストール: `pod install`
+5. プロジェクトルートに戻り、再ビルド: `cd .. && flutter run`
+
+## ランタイムエラー
+
+### 問題: 画面が真っ白になる
+**症状**: アプリが起動するが画面が真っ白で何も表示されない
+
+**解決策**:
+1. ウィジェットツリーに問題がないか確認
+2. `build`メソッド内で例外が発生していないか確認
+3. `initState`メソッド内の非同期処理を確認
+4. DevToolsを使用してウィジェットツリーを検査
+
+### 問題: メモリリーク
+**症状**: アプリの使用中にメモリ使用量が増加し続ける
+
+**解決策**:
+1. `dispose`メソッドでリソースが適切に解放されているか確認
+2. 大きなオブジェクトの参照が保持されていないか確認
+3. リスナーが適切に削除されているか確認
+4. DevToolsのメモリプロファイラを使用して問題を特定
+
+## パフォーマンス問題
+
+### 問題: UIがカクつく
+**症状**: スクロールやアニメーションがスムーズでない
+
+**解決策**:
+1. `const`ウィジェットを使用して不要な再ビルドを防ぐ
+2. 重い処理をバックグラウンドスレッドに移動
+3. リストには`ListView.builder`を使用
+4. 画像の最適化とキャッシュを実装
+5. DevToolsのパフォーマンスオーバーレイを使用して問題を特定
+
+### 問題: アプリの起動が遅い
+**症状**: アプリの起動に時間がかかる
+
+**解決策**:
+1. 起動時に必要な処理のみを実行
+2. 重い初期化処理を遅延ロードに変更
+3. 画像やアセットの最適化
+4. 初期ルートの複雑さを減らす
+5. DevToolsのタイムラインを使用して起動時間を分析
+
+## ネットワーク問題
+
+### 問題: APIリクエストが失敗する
+**症状**: APIからデータを取得できない
+
+**解決策**:
+1. ネットワーク接続を確認
+2. APIエンドポイントとパラメータが正しいか確認
+3. 認証トークンが有効か確認
+4. ネットワークインスペクタを使用してリクエスト/レスポンスを確認
+5. タイムアウト設定を調整
+
+### 問題: オフライン時の動作不良
+**症状**: インターネット接続がないときにアプリがクラッシュする
+
+**解決策**:
+1. ネットワーク状態の監視を実装
+2. オフライン時のフォールバック動作を実装
+3. ローカルキャッシュを使用してデータを保存
+4. エラーハンドリングを改善
+5. オフラインモードをテスト
+
+## 状態管理問題
+
+### 問題: 状態の更新が反映されない
+**症状**: 状態を変更しても UI が更新されない
+
+**解決策**:
+1. 状態の変更方法が正しいか確認（`setState`、`notifyListeners`など）
+2. ウィジェットが適切に状態を監視しているか確認
+3. イミュータブルな状態管理を使用しているか確認
+4. DevToolsを使用して状態の変更を追跡
+
+### 問題: 状態のリセット
+**症状**: 画面遷移後に状態がリセットされる
+
+**解決策**:
+1. グローバル状態管理を使用（Riverpod、Provider など）
+2. 状態の永続化を実装
+3. ウィジェットのライフサイクルを確認
+4. キャッシュ戦略を改善
+
+## デバッグチェックリスト
+
+1. **ログの確認**
+   - コンソールログにエラーや警告がないか確認
+   - カスタムログを追加して問題を特定
+
+2. **DevToolsの使用**
+   - ウィジェットインスペクタでUI構造を確認
+   - パフォーマンスタブでフレームレートを確認
+   - メモリタブでメモリリークを確認
+
+3. **ビルドモードの切り替え**
+   - デバッグモードと本番モードで動作に違いがないか確認
+   - プロファイルモードでパフォーマンスを測定
+
+4. **デバイス間のテスト**
+   - 複数のデバイスサイズで表示を確認
+   - 低スペックデバイスでパフォーマンスを確認
+   - 異なるOSバージョンで互換性を確認
+
+5. **クリーンビルド**
+   - `flutter clean`を実行してキャッシュをクリア
+   - 依存関係を再インストール
+   - プロジェクトを再ビルド
+```
+
+## アプリケーションのセキュリティ強化
+
+### セキュアコーディング
+- 入力検証の徹底
+- SQLインジェクション対策
+- クロスサイトスクリプティング対策
+
+```dart
+// セキュアコーディングの例
+class SecurityUtils {
+  // 入力検証
+  static bool isValidInput(String input, RegExp pattern) {
+    return pattern.hasMatch(input);
+  }
+  
+  // SQLインジェクション対策
+  static String sanitizeForSql(String input) {
+    // 特殊文字をエスケープ
+    return input
+        .replaceAll("'", "''")
+        .replaceAll(";", "")
+        .replaceAll("--", "")
+        .replaceAll("/*", "")
+        .replaceAll("*/", "");
+  }
+  
+  // XSS対策
+  static String sanitizeHtml(String html) {
+    // HTMLタグを除去
+    return html.replaceAll(RegExp(r'<[^>]*>'), '');
+  }
+  
+  // JSONインジェクション対策
+  static String sanitizeJson(String json) {
+    // 制御文字を除去
+    return json.replaceAll(RegExp(r'[\u0000-\u001F]'), '');
+  }
+  
+  // ファイルパストラバーサル対策
+  static String sanitizeFilePath(String path) {
+    // パストラバーサル文字を除去
+    return path
+        .replaceAll("..", "")
+        .replaceAll("/", "_")
+        .replaceAll("\\", "_");
+  }
+  
+  // セキュアな乱数生成
+  static List<int> generateSecureRandom(int length) {
+    final random = Random.secure();
+    return List<int>.generate(length, (_) => random.nextInt(256));
+  }
+}
+
+// 入力検証の使用例
+class SecureForm extends StatefulWidget {
+  @override
+  _SecureFormState createState() => _SecureFormState();
+}
+
+class _SecureFormState extends State<SecureForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  
+  // 正規表現パターン
+  static final _emailPattern = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  static final _passwordPattern = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$');
+  
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          TextFormField(
+            controller: _emailController,
+            decoration: InputDecoration(labelText: 'メールアドレス'),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'メールアドレスを入力してください';
+              }
+              if (!SecurityUtils.isValidInput(value, _emailPattern)) {
+                return '有効なメールアドレスを入力してください';
+              }
+              return null;
+            },
+          ),
+          TextFormField(
+            controller: _passwordController,
+            decoration: InputDecoration(labelText: 'パスワード'),
+            obscureText: true,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'パスワードを入力してください';
+              }
+              if (!SecurityUtils.isValidInput(value, _passwordPattern)) {
+                return 'パスワードは8文字以上で、大文字、小文字、数字を含む必要があります';
+              }
+              return null;
+            },
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                // フォームが有効な場合の処理
+                final email = _emailController.text;
+                final password = _passwordController.text;
+                
+                // セキュアな処理
+                _secureLogin(email, password);
+              }
+            },
+            child: Text('ログイン'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Future<void> _secureLogin(String email, String password) async {
+    try {
+      // APIリクエスト前に入力を再検証
+      if (!SecurityUtils.isValidInput(email, _emailPattern) ||
+          !SecurityUtils.isValidInput(password, _passwordPattern)) {
+        throw ValidationException('無効な入力です');
+      }
+      
+      // ログイン処理
+      // ...
+    } catch (e) {
+      // エラー処理
+    }
+  }
+}
+```
+
+### データ保護
+- 機密データの暗号化
+- セキュアなストレージの使用
+- メモリ内の機密データの最小化
+
+```dart
+// データ保護の例
+class SecureStorage {
+  static final _secureStorage = FlutterSecureStorage();
+  static final _encryptionKey = 'encryption_key';
+  
+  // 暗号化キーの取得または生成
+  static Future<Uint8List> _getOrCreateEncryptionKey() async {
+    // 保存されたキーを取得
+    final keyString = await _secureStorage.read(key: _encryptionKey);
+    
+    if (keyString != null) {
+      // 保存されたキーを復元
+      return base64.decode(keyString);
+    } else {
+      // 新しいキーを生成
+      final key = EncryptionService.generateKey();
+      // キーを保存
+      await _secureStorage.write(
+        key: _encryptionKey,
+        value: base64.encode(key),
+      );
+      return key;
+    }
+  }
+  
+  // 機密データの保存
+  static Future<void> saveSecureData(String key, String value) async {
+    // 暗号化キーを取得
+    final encryptionKey = await _getOrCreateEncryptionKey();
+    
+    // データを暗号化
+    final encryptedData = await EncryptionService.encrypt(value, encryptionKey);
+    
+    // 暗号化されたデータを保存
+    await _secureStorage.write(
+      key: key,
+      value: encryptedData.toBase64(),
+    );
+  }
+  
+  // 機密データの取得
+  static Future<String?> getSecureData(String key) async {
+    // 暗号化されたデータを取得
+    final encryptedString = await _secureStorage.read(key: key);
+    
+    if (encryptedString == null) {
+      return null;
+    }
+    
+    // 暗号化キーを取得
+    final encryptionKey = await _getOrCreateEncryptionKey();
+    
+    // 暗号化されたデータを復元
+    final encryptedData = EncryptedData.fromBase64(encryptedString);
+    
+    // データを復号化
+    return await EncryptionService.decrypt(encryptedData, encryptionKey);
+  }
+  
+  // 機密データの削除
+  static Future<void> deleteSecureData(String key) async {
+    await _secureStorage.delete(key: key);
+  }
+  
+  // すべての機密データの削除
+  static Future<void> deleteAllSecureData() async {
+    await _secureStorage.deleteAll();
+  }
+  
+  // メモリ内の機密データのクリア
+  static void clearSensitiveData(String data) {
+    // メモリ内の文字列を上書き
+    final buffer = StringBuffer();
+    for (int i = 0; i < data.length; i++) {
+      buffer.write('0');
+    }
+    // GCに任せる
+  }
+}
+
+// 使用例
+class AuthRepository {
+  static const _tokenKey = 'auth_token';
+  static const _refreshTokenKey = 'refresh_token';
+  static const _userDataKey = 'user_data';
+  
+  // ログイン処理
+  Future<void> login(String username, String password) async {
+    try {
+      // APIリクエスト
+      final response = await apiClient.login(username, password);
+      
+      // トークンを安全に保存
+      await SecureStorage.saveSecureData(_tokenKey, response.token);
+      await SecureStorage.saveSecureData(_refreshTokenKey, response.refreshToken);
+      
+      // ユーザーデータを保存
+      final userData = jsonEncode(response.user.toJson());
+      await SecureStorage.saveSecureData(_userDataKey, userData);
+      
+      // メモリ内のパスワードをクリア
+      SecureStorage.clearSensitiveData(password);
+    } catch (e) {
+      // エラー処理
+      rethrow;
+    }
+  }
+  
+  // トークンの取得
+  Future<String?> getToken() async {
+    return await SecureStorage.getSecureData(_tokenKey);
+  }
+  
+  // ログアウト処理
+  Future<void> logout() async {
+    await SecureStorage.deleteSecureData(_tokenKey);
+    await SecureStorage.deleteSecureData(_refreshTokenKey);
+    await SecureStorage.deleteSecureData(_userDataKey);
+  }
+}
+```
+
+### 安全な通信
+- HTTPSの強制
+- 証明書ピンニング
+- APIキーの保護
+
+```dart
+// 安全な通信の例
+class SecureApiClient {
+  final Dio _dio;
+  final List<String> _pinnedCertificates;
+  
+  SecureApiClient({
+    required String baseUrl,
+    required List<String> pinnedCertificates,
+    int connectTimeout = 5000,
+    int receiveTimeout = 3000,
+  }) : _dio = Dio(
+         BaseOptions(
+           baseUrl: baseUrl,
+           connectTimeout: Duration(milliseconds: connectTimeout),
+           receiveTimeout: Duration(milliseconds: receiveTimeout),
+           validateStatus: (status) => status != null && status < 500,
+         ),
+       ),
+       _pinnedCertificates = pinnedCertificates {
+    // HTTPSの強制
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          // HTTPSのみを許可
+          if (!options.path.startsWith('https://') && !options.baseUrl.startsWith('https://')) {
+            return handler.reject(
+              DioError(
+                requestOptions: options,
+                error: 'HTTPSのみ許可されています',
+              ),
+            );
+          }
+          return handler.next(options);
+        },
+      ),
+    );
+    
+    // 証明書ピンニングの設定
+    (_dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (client) {
+      client.badCertificateCallback = (cert, host, port) {
+        // 証明書のフィンガープリントを取得
+        final fingerprint = _getCertificateFingerprint(cert);
+        
+        // ピン留めされた証明書と比較
+        return _pinnedCertificates.contains(fingerprint);
+      };
+      return client;
+    };
+  }
+  
+  // 証明書のフィンガープリントを取得
+  String _getCertificateFingerprint(X509Certificate cert) {
+    // SHA-256ハッシュを計算
+    final digest = sha256.convert(cert.der);
+    return digest.toString();
+  }
+  
+  // GETリクエスト
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final response = await _dio.get(
+        path,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      );
+      return response;
+    } catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+  
+  // POSTリクエスト
+  Future<Response> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final response = await _dio.post(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      );
+      return response;
+    } catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+  
+  // エラーハンドリング
+  void _handleError(dynamic error) {
+    if (error is DioError) {
+      // Dioエラーの処理
+      switch (error.type) {
+        case DioErrorType.connectionTimeout:
+          throw NetworkException('接続タイムアウト');
+        case DioErrorType.sendTimeout:
+          throw NetworkException('送信タイムアウト');
+        case DioErrorType.receiveTimeout:
+          throw NetworkException('受信タイムアウト');
+        case DioErrorType.badResponse:
+          // レスポンスエラーの処理
+          final statusCode = error.response?.statusCode;
+          final responseData = error.response?.data;
+          
+          if (statusCode == 401) {
+            throw AuthenticationException('認証エラー');
+          } else if (statusCode == 403) {
+            throw AuthorizationException('権限エラー');
+          } else if (statusCode == 404) {
+            throw NotFoundException('リソースが見つかりません');
+          } else {
+            throw ServerException('サーバーエラー: $statusCode');
+          }
+        case DioErrorType.cancel:
+          throw RequestCancelledException('リクエストがキャンセルされました');
+        default:
+          throw NetworkException('ネットワークエラー: ${error.message}');
+      }
+    } else {
+      // その他のエラー
+      throw UnknownException('不明なエラー: $error');
+    }
+  }
+}
+
+// APIキーの保護
+class ApiKeyManager {
+  // ネイティブコードからAPIキーを取得
+  static Future<String> getApiKey() async {
+    try {
+      // MethodChannelを使用してネイティブコードからAPIキーを取得
+      const platform = MethodChannel('com.example.app/api_keys');
+      final apiKey = await platform.invokeMethod<String>('getApiKey');
+      
+      if (apiKey == null || apiKey.isEmpty) {
+        throw Exception('APIキーの取得に失敗しました');
+      }
+      
+      return apiKey;
+    } catch (e) {
+      // エラー処理
+      Logger.error('APIキーの取得エラー', error: e);
+      rethrow;
+    }
+  }
+}
+```
+
+
+
