@@ -18,19 +18,26 @@ Stream<List<Todo>> todos(TodosRef ref) {
       .map((snapshot) {
     return snapshot.docs.map((doc) {
       final data = doc.data();
+      final id = doc.id;
+      if (id.isEmpty) {
+        throw Exception('TODOのIDが無効です');
+      }
+
       return Todo.fromJson({
-        'id': doc.id,
+        'id': id,
         'userId': data['userId'] as String,
         'title': data['title'] as String,
         'description': data['description'] as String,
         'createdAt':
-            (data['createdAt'] as Timestamp).toDate().toIso8601String(),
+            (data['createdAt'] as Timestamp?)?.toDate().toIso8601String() ??
+                DateTime.now().toIso8601String(),
         'updatedAt':
-            (data['updatedAt'] as Timestamp).toDate().toIso8601String(),
+            (data['updatedAt'] as Timestamp?)?.toDate().toIso8601String() ??
+                DateTime.now().toIso8601String(),
         'dueDate': data['dueDate'] != null
-            ? (data['dueDate'] as Timestamp).toDate().toIso8601String()
+            ? (data['dueDate'] as Timestamp?)?.toDate().toIso8601String()
             : null,
-        'isCompleted': data['isCompleted'] as bool,
+        'isCompleted': data['isCompleted'] as bool? ?? false,
       });
     }).toList();
   });
@@ -80,6 +87,9 @@ class TodoController extends _$TodoController {
   Future<void> toggleTodo(Todo todo) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
+      if (todo.id.isEmpty) {
+        throw Exception('TODOのIDが無効です');
+      }
       await FirebaseFirestore.instance.collection('todos').doc(todo.id).update({
         'isCompleted': !todo.isCompleted,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -94,8 +104,7 @@ class TodoController extends _$TodoController {
         'userId': todo.userId,
         'title': todo.title,
         'description': todo.description,
-        'createdAt': Timestamp.fromDate(todo.createdAt),
-        'updatedAt': Timestamp.fromDate(todo.updatedAt),
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
         'dueDate':
             todo.dueDate != null ? Timestamp.fromDate(todo.dueDate!) : null,
         'isCompleted': todo.isCompleted,

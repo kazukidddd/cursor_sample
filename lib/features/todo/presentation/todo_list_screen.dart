@@ -43,9 +43,18 @@ class TodoListScreen extends ConsumerWidget {
                     todo: todo,
                     onToggle: (value) {
                       if (value != null) {
-                        ref
-                            .read(todoControllerProvider.notifier)
-                            .toggleTodo(todo);
+                        try {
+                          ref
+                              .read(todoControllerProvider.notifier)
+                              .toggleTodo(todo);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('エラーが発生しました: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     },
                     onTap: () {

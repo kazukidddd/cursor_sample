@@ -4,9 +4,9 @@ import 'package:todo_app/features/auth/application/auth_provider.dart';
 import 'package:todo_app/features/auth/presentation/sign_in_screen.dart';
 import 'package:todo_app/features/settings/presentation/settings_screen.dart';
 import 'package:todo_app/features/todo/domain/models/todo.dart';
+import 'package:todo_app/features/todo/presentation/main_layout_screen.dart';
 import 'package:todo_app/features/todo/presentation/todo_create_screen.dart';
 import 'package:todo_app/features/todo/presentation/todo_edit_screen.dart';
-import 'package:todo_app/features/todo/presentation/todo_list_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -32,7 +32,7 @@ GoRouter router(RouterRef ref) {
       ),
       GoRoute(
         path: '/todos',
-        builder: (context, state) => const TodoListScreen(),
+        builder: (context, state) => const MainLayoutScreen(),
       ),
       GoRoute(
         path: '/todos/create',
